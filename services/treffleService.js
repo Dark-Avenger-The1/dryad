@@ -5,7 +5,7 @@ export default class Perenual{
     #plantID;
     #plantGuide;
     constructor(plantName){
-        this.#key=process.env.PERENUAL_KEY;
+        this.#key=process.env.TREFFLE_KEY;
         this.#plantDetail={
             hardness:null,
             watering:null,
@@ -18,5 +18,9 @@ export default class Perenual{
         };
         
         this.#plantName=plantName;
+    }
+
+    extractPlantID(){
+
     }
 }

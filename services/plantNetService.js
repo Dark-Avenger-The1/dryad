@@ -1,3 +1,5 @@
+import axios from "axios";
+
 export default class PlantNet{
     #key;
     #currentPlant;
@@ -9,10 +11,25 @@ export default class PlantNet{
         }
     }
 
-    async identifyPlant(){
-        const query = `
+    async identifyPlant(selectedImage){
 
-        `;
+        const formData = FormData();
+
+        formData.append('images',{
+            uri:selectedImage.uri,
+            name:selectedImage.fileName,
+            type:selectedImage.type ||'image/jpeg'
+        })
+        try {
+            const response = await axios.post(`https://my-api.plantnet.org/v2/identify/all?api-key=${this.#key}`,formData,{
+                headers:{
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
+            return (await response).data;
+        } catch (error) {
+            throw new Error(error.message);
+        };
     }
 
     getScientificName(){
