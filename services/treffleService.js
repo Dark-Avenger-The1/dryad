@@ -1,26 +1,45 @@
-export default class Perenual{
+import axios from "axios";
+
+export default class Treffle{
     #key;
     #plantDetail;
-    #plantName;
-    #plantID;
-    #plantGuide;
-    constructor(plantName){
+    constructor(){
         this.#key=process.env.TREFFLE_KEY;
         this.#plantDetail={
-            hardness:null,
-            watering:null,
-            sun:null,
-            droughtTolerance:null,
-            maintenace:null,
-            careLevel:null,
-            soil:null,
-            saltTolerance:null
+            phLevel:{
+                phMax:null,
+                phMin:null
+            },
+            light:null,
+            humidity:null,
+            temp:{
+                maxTemp:null,
+                minTemp:null
+            },
+            soil:null
         };
-        
-        this.#plantName=plantName;
     }
 
-    extractPlantID(){
+    async getPlantInfo(plantName){
+        const response = await axios.get(`https://trefle.io/api/v1/species/${plantName}?token=${this.#key}`)
+        const data = await response.data.growth;
+        this.#plantDetail={
+            phLevel:{
+                phMax:data.ph_maximum,
+                phMin:data.ph_minimum
+            },
+            light:data.light,
+            humidity:data.atmospheric_humidity,
+            temp:{
+                maxTemp:data.maxinum_temperature,
+                minTemp:data.minimum_temperature
+            },
+            soil:data.soil_nutriments
+        }
+    }
 
+
+    getPlantDetails(){
+        return this.#plantDetail;
     }
 }
