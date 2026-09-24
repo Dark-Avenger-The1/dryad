@@ -10,7 +10,9 @@ import MoreStack from './screens/MoreStack';
 const Tab = createBottomTabNavigator();
  
 export default function App() {
+  //Provide a SafeArea so the bottom will not overlap.
   return (
+    
     <NavigationContainer>
       <Tab.Navigator>
         <Tab.Screen name="Home" component={HomeScreen} />
