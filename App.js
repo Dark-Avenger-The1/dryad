@@ -5,6 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, Text, View } from 'react-native';
+import { SQLiteProvider } from 'expo-sqlite';
+import { migrateDbIfNeeded } from './database/migrate';
 
 import HomeScreen from './screens/HomeScreen';
 import MyGardenScreen from './screens/MyGardenScreen';
@@ -33,11 +37,13 @@ export default function App() {
   }
 
 return (
+  <SQLiteProvider databaseName="plants.db" onInit={migrateDbIfNeeded}>
     <SafeAreaProvider>
       <NavigationContainer>
         <TabsWithInsets />
       </NavigationContainer>
     </SafeAreaProvider>
+  </SQLiteProvider>
   );
 }
 
