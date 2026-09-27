@@ -20,6 +20,7 @@ import { COLORS, FONTS } from './constant/constant';
 import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 
+
 const Tab = createBottomTabNavigator();
 
 // Keep the splash visible while fonts load. The .catch() avoids an

@@ -1,41 +1,34 @@
 import axios from "axios";
 
-export default class PlantNet{
-    #key;
-    #currentPlant;
-    constructor(){
-        this.#key=process.env.PLANTNET_KEY;
-        this.#currentPlant={
-            scientificName:null,
-            commonName:null
-        }
-    }
+export default class PlantNet {
+  #key;
+  constructor() {
+    this.#key = process.env.PLANTNET_KEY;
+  }
 
-    async identifyPlant(selectedImage){
+  async identifyPlant(selectedImage) {
+    return this.#key ?? 'No key';
+    // if (!this.#key) throw new Error('Missing Pl@ntNet API key');
 
-        const formData = FormData();
+    // const formData = new FormData();
+    // formData.append('images', {
+    //   uri: selectedImage.uri,
+    //   name: selectedImage.fileName || 'plant.jpg',
+    //   type: selectedImage.mimeType || 'image/jpeg',
+    // });
+    // formData.append('organs', 'auto');
 
-        formData.append('images',{
-            uri:selectedImage.uri,
-            name:selectedImage.fileName,
-            type:selectedImage.type ||'image/jpeg'
-        })
-        try {
-            const response = await axios.post(`https://my-api.plantnet.org/v2/identify/all?api-key=${this.#key}`,formData,{
-                headers:{
-                    'Content-Type': 'multipart/form-data',
-                }
-            });
-            return (await response).data;
-        } catch (error) {
-            throw new Error(error.message);
-        };
-    }
-
-    getScientificName(){
-        return this.#currentPlant.scientificName;
-    }
-    getCommonName(){
-        return this.#currentPlant.commonName;
-    }
+    // try {
+    //   const res = await axios.post(
+    //     `https://my-api.plantnet.org/v2/identify/all?api-key=${this.#key}`,
+    //     formData,
+    //     { timeout: 20000 }
+    //   );
+    //   return res.data;
+    // } catch (error) {
+    //   throw new Error(
+    //     error.response?.data?.message || error.message || 'Request failed'
+    //   );
+    // }
+  }
 }
