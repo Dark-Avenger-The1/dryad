@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
 import { SQLiteProvider } from 'expo-sqlite';
+
 import { migrateDbIfNeeded } from './database/migrate';
 
 import HomeScreen from './screens/HomeScreen';
@@ -22,28 +22,43 @@ import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 
 const Tab = createBottomTabNavigator();
 
-SplashScreen.preventAutoHideAsync();
+// Keep the splash visible while fonts load. The .catch() avoids an
+// unhandled rejection if the splash has already auto-hidden.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'Poppins-Regular': Poppins_400Regular,
     'Poppins-Bold': Poppins_700Bold,
     'Inter-Regular': Inter_400Regular,
     'Inter-Bold': Inter_700Bold,
   });
 
-  if (!fontsLoaded) {
+  // Fires after the first frame is painted, so there is no white flash
+  // between the splash hiding and the UI appearing.
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded || fontError) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  // fontError is included so a failed font download degrades to the
+  // system font instead of freezing on the splash screen forever.
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 
-return (
-  <SQLiteProvider databaseName="plants.db" onInit={migrateDbIfNeeded}>
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <TabsWithInsets />
-      </NavigationContainer>
-    </SafeAreaProvider>
-  </SQLiteProvider>
+  return (
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <SQLiteProvider databaseName="plants.db" onInit={migrateDbIfNeeded}>
+        <SafeAreaProvider>
+          <NavigationContainer>
+            <TabsWithInsets />
+            <StatusBar style="dark" />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </SQLiteProvider>
+    </View>
   );
 }
 
@@ -70,10 +85,17 @@ function TabsWithInsets() {
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'My Garden') iconName = focused ? 'leaf' : 'leaf-outline';
-          else if (route.name === 'Daily Routine') iconName = focused ? 'calendar' : 'calendar-outline';
-          else if (route.name === 'More') iconName = focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline';
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'My Garden') {
+            iconName = focused ? 'leaf' : 'leaf-outline';
+          } else if (route.name === 'Daily Routine') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
+          } else if (route.name === 'More') {
+            iconName = focused
+              ? 'ellipsis-horizontal-circle'
+              : 'ellipsis-horizontal-circle-outline';
+          }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
