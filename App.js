@@ -19,9 +19,10 @@ import { COLORS, FONTS } from './constant/constant';
 
 import { useFonts, Poppins_400Regular, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
-
+import {PLANTNET_KEY} from '@env';
 
 const Tab = createBottomTabNavigator();
+
 
 // Keep the splash visible while fonts load. The .catch() avoids an
 // unhandled rejection if the splash has already auto-hidden.

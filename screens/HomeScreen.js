@@ -48,12 +48,13 @@ export default function HomeScreen() {
 
 const handleScanPlant= async ()=>{
   const result = await handleScan();
-  Alert.alert(result);
+  Alert.alert(JSON.stringify(result));
 }
 
 const handleUploadPlant = async ()=>{
   const result = await handlePickImage();
-  Alert.alert(result);
+  console.log(JSON.stringify(result))
+  Alert.alert(JSON.stringify(result));
 }
 
   return (
