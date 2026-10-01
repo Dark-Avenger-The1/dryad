@@ -20,7 +20,7 @@
 //           ALTER TABLE plant_requirements ADD COLUMN watering_days INTEGER;
 //       `,
 //
-// Lookup tables (plant_types, light_levels, soil_types) store each value once;
+// Lookup tables (light_levels, soil_types) store each value once;
 // other tables reference them by id instead of repeating free text.
 
 export const MIGRATIONS = [
@@ -80,5 +80,31 @@ export const MIGRATIONS = [
         CREATE INDEX idx_plants_type_id ON plants(type_id);
         CREATE INDEX idx_plant_requirements_light_id ON plant_requirements(light_id);
         CREATE INDEX idx_plant_soils_soil_id ON plant_soils(soil_id);
+    `,
+
+    // Version 2: remove plant types (no longer needed)
+    // SQLite can't drop a column that is a foreign key, so plants is rebuilt
+    // without type_id. migrate.js turns foreign keys off while migrations run,
+    // so dropping the old plants table does not cascade-delete the rows in
+    // plant_requirements and plant_soils.
+    `
+        CREATE TABLE plants_new (
+            plant_id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            common_name     TEXT NOT NULL,
+            scientific_name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            image_url       TEXT,                     -- image path or URL
+            description     TEXT
+        );
+
+        INSERT INTO plants_new (plant_id, common_name, scientific_name, image_url, description)
+        SELECT plant_id, common_name, scientific_name, image_url, description
+        FROM plants;
+
+        DROP TABLE plants;                        -- also drops idx_plants_type_id
+        ALTER TABLE plants_new RENAME TO plants;
+        DROP TABLE plant_types;
+
+        -- My Garden lists plants sorted by common name
+        CREATE INDEX idx_plants_common_name ON plants(common_name COLLATE NOCASE);
     `,
 ];
