@@ -1,19 +1,6 @@
 // Read queries for the My Garden tab.
-//
-// Every function takes the database as its first argument. Inside a component
-// get it with useSQLiteContext() from 'expo-sqlite':
-//
-//     const db = useSQLiteContext();
-//     const cards = await getGardenPlantCards(db);
-//     const details = await getPlantDetails(db, cards[0].plantId);
-//
-// Column names are aliased to camelCase so results can be used directly in JSX.
 
-// Everything a garden card shows, one row per plant, sorted A-Z by common name.
-// description is the full text; shorten it on the card with
-// <Text numberOfLines={2}> so the full text is still there for the pop-up.
-//
-// Returns: [{ plantId, commonName, scientificName, imageUrl, description }]
+//Garden Cards
 export function getGardenPlantCards(db) {
     return db.getAllAsync(`
         SELECT plant_id        AS plantId,
@@ -26,19 +13,7 @@ export function getGardenPlantCards(db) {
     `);
 }
 
-// Everything the pop-up shows for one plant, fetched in a single query.
-//
-// Returns null if the plant does not exist, otherwise:
-// {
-//     plantId, commonName, scientificName, imageUrl, description,
-//     requirements: {
-//         soilTypes:    ['Loamy', 'Sandy'],     // A-Z, [] if none recorded
-//         lightLevel:   'Full sun',
-//         ph:           { min: 6.0, max: 7.0 },
-//         humidity:     { min: 40, max: 60 },   // %, null if not recorded
-//         temperatureC: { min: 15, max: 30 },
-//     } | null                                  // null if no requirements row
-// }
+// Card Pop-ups
 export async function getPlantDetails(db, plantId) {
     const row = await db.getFirstAsync(
         `
