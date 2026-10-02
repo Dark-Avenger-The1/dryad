@@ -2,6 +2,8 @@ import axios from "axios";
 import {PLANTNET_KEY} from '@env';
 export default class PlantNet {
   #key;
+  #scientificName;
+  #identifiedPlantData;
   constructor() {
     this.#key = PLANTNET_KEY;
   }
@@ -32,7 +34,7 @@ export default class PlantNet {
   }
 
     normalize(raw) {
-      return {
+      const data ={
         bestMatch: raw.bestMatch,
         organ: raw.predictedOrgans?.[0]?.organ ?? null,
         remaining: raw.remainingIdentificationRequests,
@@ -43,6 +45,12 @@ export default class PlantNet {
           score: Math.round(r.score * 100),
           gbifId: r.gbif?.id ?? null,
         })),
-      };
+      }
+      this.#scientificName=data.candidates[0];
+      this.#identifiedPlantData=data;
+    }
+
+    getScientificName(){
+      return this.#scientificName;
     }
 }

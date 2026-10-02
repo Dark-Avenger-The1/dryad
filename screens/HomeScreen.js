@@ -53,7 +53,7 @@ const handleScanPlant= async ()=>{
 
 const handleUploadPlant = async ()=>{
   const result = await handlePickImage();
-  console.log(JSON.stringify(result))
+  console.log(JSON.stringify(result));
   Alert.alert(JSON.stringify(result));
 }
 
