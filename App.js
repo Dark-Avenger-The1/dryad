@@ -25,6 +25,7 @@ import {
 } from '@expo-google-fonts/poppins';
 
 import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
+import {PLANTNET_KEY} from '@env';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();

@@ -6,42 +6,56 @@ import Card from '../components/Card';
 import AppButton from '../components/AppButton';
 import { COLORS, FONTS } from '../constant/constant';
 
+//Module 
+import { handleScan,handlePickImage } from '../hooks/ModalPlantCreation.js';
+
 export default function HomeScreen() {
   const [selectedImage, setSelectedImage] = useState(null);
 
-const handleScanPlant = async () => {
-  const permission = await ImagePicker.requestCameraPermissionsAsync();
-  if (!permission.granted) {
-    Alert.alert('Permission needed', 'Camera access is required to scan a plant.');
-    return;
-  }
+// const handleScanPlant = async () => {
+//   const permission = await ImagePicker.requestCameraPermissionsAsync();
+//   if (!permission.granted) {
+//     Alert.alert('Permission needed', 'Camera access is required to scan a plant.');
+//     return;
+//   }
 
-  const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: ['images'],
-    quality: 0.7,
-  });
+//   const result = await ImagePicker.launchCameraAsync({
+//     mediaTypes: ['images'],
+//     quality: 0.7,
+//   });
 
-  if (!result.canceled) {
-    setSelectedImage(result.assets[0].uri);
-  }
-};
+//   if (!result.canceled) {
+//     setSelectedImage(result.assets[0].uri);
+//   }
+// };
 
-const handleUploadPlant = async () => {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) {
-    Alert.alert('Permission needed', 'Media library access is required to upload a photo.');
-    return;
-  }
+// const handleUploadPlant = async () => {
+//   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+//   if (!permission.granted) {
+//     Alert.alert('Permission needed', 'Media library access is required to upload a photo.');
+//     return;
+//   }
 
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    quality: 0.7,
-  });
+//   const result = await ImagePicker.launchImageLibraryAsync({
+//     mediaTypes: ['images'],
+//     quality: 0.7,
+//   });
 
-  if (!result.canceled) {
-    setSelectedImage(result.assets[0].uri);
-  }
-};
+//   if (!result.canceled) {
+//     setSelectedImage(result.assets[0].uri);
+//   }
+// };
+
+const handleScanPlant= async ()=>{
+  const result = await handleScan();
+  Alert.alert(JSON.stringify(result));
+}
+
+const handleUploadPlant = async ()=>{
+  const result = await handlePickImage();
+  console.log(JSON.stringify(result))
+  Alert.alert(JSON.stringify(result));
+}
 
   return (
     <View style={styles.container}>

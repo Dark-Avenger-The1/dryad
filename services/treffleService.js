@@ -1,10 +1,10 @@
 import axios from "axios";
-
+import {TREFFLE_KEY} from '@env'
 export default class Treffle{
     #key;
     #plantDetail;
     constructor(){
-        this.#key=process.env.TREFFLE_KEY;
+        this.#key=TREFFLE_KEY;
         this.#plantDetail={
             phLevel:{
                 phMax:null,
