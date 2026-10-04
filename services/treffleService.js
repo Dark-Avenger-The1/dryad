@@ -1,10 +1,10 @@
 import axios from "axios";
-
+import {TREFFLE_KEY} from '@env'
 export default class Treffle{
     #key;
     #plantDetail;
     constructor(){
-        this.#key=process.env.TREFFLE_KEY;
+        this.#key=TREFFLE_KEY;
         this.#plantDetail={
             phLevel:{
                 phMax:null,
@@ -16,11 +16,11 @@ export default class Treffle{
                 maxTemp:null,
                 minTemp:null
             },
-            soil:null
+            soil_nutriments:null
         };
     }
 
-    async getPlantInfo(plantName){
+    async fetchPlantInfo(plantName){
         const response = await axios.get(`https://trefle.io/api/v1/species/${plantName}?token=${this.#key}`)
         const data = await response.data.growth;
         this.#plantDetail={

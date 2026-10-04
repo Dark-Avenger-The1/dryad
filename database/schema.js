@@ -20,17 +20,12 @@
 //           ALTER TABLE plant_requirements ADD COLUMN watering_days INTEGER;
 //       `,
 //
-// Lookup tables (plant_types, light_levels, soil_types) store each value once;
+// Lookup tables (light_levels, soil_types) store each value once;
 // other tables reference them by id instead of repeating free text.
 
 export const MIGRATIONS = [
     // Version 1: initial structure
     `
-        CREATE TABLE plant_types (
-            type_id INTEGER PRIMARY KEY,
-            name    TEXT NOT NULL UNIQUE COLLATE NOCASE   -- Flower, Fruit, Vegetable, Tree...
-        );
-
         CREATE TABLE light_levels (
             light_id INTEGER PRIMARY KEY,
             name     TEXT NOT NULL UNIQUE COLLATE NOCASE  -- Full sun, Partial shade...
@@ -46,7 +41,6 @@ export const MIGRATIONS = [
             plant_id        INTEGER PRIMARY KEY AUTOINCREMENT,
             common_name     TEXT NOT NULL,
             scientific_name TEXT NOT NULL UNIQUE COLLATE NOCASE,
-            type_id         INTEGER NOT NULL REFERENCES plant_types(type_id),
             image_url       TEXT,                     -- image path or URL
             description     TEXT
         );
@@ -77,7 +71,8 @@ export const MIGRATIONS = [
             PRIMARY KEY (plant_id, soil_id)
         );
 
-        CREATE INDEX idx_plants_type_id ON plants(type_id);
+        -- My Garden lists plants sorted by common name
+        CREATE INDEX idx_plants_common_name ON plants(common_name COLLATE NOCASE);
         CREATE INDEX idx_plant_requirements_light_id ON plant_requirements(light_id);
         CREATE INDEX idx_plant_soils_soil_id ON plant_soils(soil_id);
     `,
