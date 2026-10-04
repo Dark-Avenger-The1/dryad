@@ -1,4 +1,4 @@
-import { interpretPh,interpretTemp,interpretLight,interpretSoil } from "./FieldInterpreter";
+import { interpretPh,interpretTemp,interpretLight,interpretSoil,interpretHumidity } from "./FieldInterpreter";
 import { deriveWateringDays } from "./WateringInterval";
 import { buildPlantingSteps } from "./PlantStep";
 
@@ -6,7 +6,7 @@ export default function buildTipsInterpreter(growthRaw = {}){
     const g = growthRaw;
     const light = interpretLight(g.light);
     const humidity = interpretHumidity(g.humidity);
-    const soil = interpretSoil(g.soil_nutriments);
+    const soil = interpretSoil(g.soilNutriments);
     const ph = interpretPh(g.phLevel.phMin, g.phLevel.phMax);
     const temp = interpretTemp(
         g.temp.minTemp?.deg_c ?? null,
@@ -14,11 +14,11 @@ export default function buildTipsInterpreter(growthRaw = {}){
     );
 
     const wateringDays = deriveWateringDays({
-        soilHumidity: growth.soilHumidity,
+        soilHumidity: g.soilHumidity,
         lightBand: light?.band,
     });
 
-    const care = { light, humidity, soil, ph, temp, growth, wateringDays };
+    const care = { light, humidity, soil, ph, temp, wateringDays };
 
     care.tips = [
         light?.tip,

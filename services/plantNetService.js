@@ -1,9 +1,11 @@
 import axios from "axios";
-import {PLANTNET_KEY} from '@env';
+import { PLANTNET_KEY } from '@env';
+
 export default class PlantNet {
   #key;
   #scientificName;
   #identifiedPlantData;
+
   constructor() {
     this.#key = PLANTNET_KEY;
   }
@@ -33,24 +35,32 @@ export default class PlantNet {
     }
   }
 
-    normalize(raw) {
-      const data ={
-        bestMatch: raw.bestMatch,
-        organ: raw.predictedOrgans?.[0]?.organ ?? null,
-        remaining: raw.remainingIdentificationRequests,
-        candidates: (raw.results ?? []).slice(0, 3).map(r => ({
-          scientificName: r.species.scientificNameWithoutAuthor,
-          commonName: r.species.commonNames?.[0] ?? null,
-          family: r.species.family.scientificNameWithoutAuthor,
-          score: Math.round(r.score * 100),
-          gbifId: r.gbif?.id ?? null,
-        })),
-      }
-      this.#scientificName=data.candidates[0];
-      this.#identifiedPlantData=data;
-    }
+  normalize(raw) {
+    const data = {
+      bestMatch: raw.bestMatch,
+      organ: raw.predictedOrgans?.[0]?.organ ?? null,
+      remaining: raw.remainingIdentificationRequests,
+      candidates: (raw.results ?? []).slice(0, 3).map(r => ({
+        scientificName: r.species.scientificNameWithoutAuthor,
+        commonName: r.species.commonNames?.[0] ?? null,
+        family: r.species.family.scientificNameWithoutAuthor,
+        score: Math.round(r.score * 100),
+        gbifId: r.gbif?.id ?? null,
+      })),
+    };
 
-    getScientificName(){
-      return this.#scientificName;
-    }
+    // store the NAME STRING, not the whole candidate object
+    this.#scientificName = data.candidates[0]?.scientificName ?? null;
+    this.#identifiedPlantData = data;
+
+    return data;   // <-- was missing, caused "undefined.candidates"
+  }
+
+  getScientificName() {
+    return this.#scientificName;
+  }
+
+  getIdentifiedPlantData() {
+    return this.#identifiedPlantData;
+  }
 }
