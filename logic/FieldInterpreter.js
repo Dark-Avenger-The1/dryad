@@ -48,12 +48,26 @@ export function interpretHumidity(humidity) {
   };
 }
 
-/** soil_nutriments: 1 (very poor) .. 9 (very rich) */
+/**
+ * soil_nutriments: 0 (hyperoligotrophic) .. 10 (hypereutrophic)
+ * The cut-offs match the soil_nutrient_levels table in database/schema.js,
+ * so change both together. `level` is the label shown to the user.
+ */
 export function interpretSoil(soil) {
   if (soil == null) return null;
+  if (soil <= 1) {
+    return {
+      band: 'very-low',
+      level: 'Very low',
+      tip: 'This plant grows in very poor soil. Do not fertilize it; extra nutrients can harm it.',
+      feedEveryDays: null,
+      prepStep: 'Use plain garden soil mixed with plenty of sand or gravel. Skip the compost.',
+    };
+  }
   if (soil <= 3) {
     return {
-      band: 'poor',
+      band: 'low',
+      level: 'Low',
       tip: 'This plant survives in poor soil. Too much fertilizer can harm it.',
       feedEveryDays: null,
       prepStep: 'Use plain garden soil mixed with sand for drainage. Skip the compost.',
@@ -61,17 +75,28 @@ export function interpretSoil(soil) {
   }
   if (soil <= 6) {
     return {
-      band: 'average',
+      band: 'medium',
+      level: 'Medium',
       tip: 'Ordinary garden soil with some compost suits this plant.',
       feedEveryDays: 60,
       prepStep: 'Mix garden soil with compost at about 3:1.',
     };
   }
+  if (soil <= 8) {
+    return {
+      band: 'high',
+      level: 'High',
+      tip: 'This plant is a heavy feeder and needs rich soil.',
+      feedEveryDays: 30,
+      prepStep: 'Mix garden soil with plenty of compost or aged manure, about 2:1.',
+    };
+  }
   return {
-    band: 'rich',
-    tip: 'This plant is a heavy feeder and needs rich soil.',
-    feedEveryDays: 30,
-    prepStep: 'Mix garden soil with plenty of compost or aged manure, about 2:1.',
+    band: 'very-high',
+    level: 'Very high',
+    tip: 'This plant is a very heavy feeder and needs very rich soil.',
+    feedEveryDays: 14,
+    prepStep: 'Mix garden soil with compost or aged manure in equal parts, about 1:1.',
   };
 }
 

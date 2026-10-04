@@ -1,72 +1,62 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
 import PendingPlantCard from '../components/PendingPlantCard';
 import { COLORS, FONTS, SIZES, SPACING } from '../constant/constant';
 
-// Placeholder until the database member wires this up.
-// Replace with a query for plants where status = 'pending'.
-const SAMPLE_PENDING = [
-  {
-    id: '1',
-    commonName: 'Dwarf Banana',
-    scientificName: 'Musa acuminata',
-    status: 'pending',
-    image: {
-      uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Musa_acuminata_-_Bananier.jpg/640px-Musa_acuminata_-_Bananier.jpg',
-    },
-    care: {
-      wateringDays: 2,
-      tips: [
-        'This plant needs full sun. Give it an open spot with no overhead cover.',
-        'This plant likes humid air. Group it with other plants or mist it on dry days.',
-        'Water about every 2 days.',
-      ],
-      plantingSteps: [
-        {
-          title: 'Choose the spot',
-          detail:
-            'Place in the most open part of your garden or balcony. Aim for about 6-8 hours of sunlight.',
-        },
-        {
-          title: 'Prepare the soil',
-          detail:
-            'Mix garden soil with plenty of compost or aged manure, about 2:1. Mix in coffee grounds or peat to lower the pH.',
-        },
-        {
-          title: 'Dig and space',
-          detail:
-            'Dig a hole twice as wide as the root ball. Leave 300 cm between plants.',
-        },
-        {
-          title: 'Water in',
-          detail:
-            'Water deeply right after planting so the soil settles around the roots.',
-        },
-      ],
-    },
-  },
-];
+import { useLiveQuery } from '../database/useLiveQuery';
+import { getPendingPlants } from '../database/queries/Read';
+import { completePlanting } from '../database/queries/Update';
 
 export default function HomeScreen() {
-  const [pending, setPending] = useState(SAMPLE_PENDING);
+  const db = useSQLiteContext();
 
-  const handleComplete = (plant) => {
-    // TODO: database update goes here — set status to 'planted'
-    // so the plant appears in My Garden.
-    setPending((prev) => prev.filter((p) => p.id !== plant.id));
+  // Pending plants from the database. Refreshes by itself when a plant is
+  // scanned, planted or archived.
+  const { data, loading, error } = useLiveQuery(getPendingPlants);
+
+  // Shape PendingPlantCard expects
+  const pending = useMemo(
+    () =>
+      (data ?? []).map((plant) => ({
+        id: plant.gardenPlantId,
+        gardenPlantId: plant.gardenPlantId,
+        commonName: plant.commonName,
+        scientificName: plant.scientificName,
+        status: 'pending',
+        image: plant.imageUri ? { uri: plant.imageUri } : undefined,
+        care: plant.care,
+      })),
+    [data]
+  );
+
+  // Pending -> planted. The plant leaves this list and appears in My Garden.
+  const handleComplete = async (plant) => {
+    try {
+      await completePlanting(db, plant.gardenPlantId);
+    } catch (e) {
+      Alert.alert('Could not finish planting', e.message);
+    }
   };
+
+  let subtitle;
+  if (loading) {
+    subtitle = 'Loading…';
+  } else if (error) {
+    subtitle = `Could not load plants: ${error.message}`;
+  } else if (pending.length > 0) {
+    subtitle = `${pending.length} plant${pending.length === 1 ? '' : 's'} waiting to be planted`;
+  } else {
+    subtitle = 'Nothing pending';
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Today</Text>
-      <Text style={styles.subtitle}>
-        {pending.length > 0
-          ? `${pending.length} plant${pending.length === 1 ? '' : 's'} waiting to be planted`
-          : 'Nothing pending'}
-      </Text>
+      <Text style={styles.subtitle}>{subtitle}</Text>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {pending.length === 0 ? (
+        {loading || error ? null : pending.length === 0 ? (
           <View style={styles.emptyBox}>
             <Text style={styles.emptyText}>
               No plants waiting. Scan a plant to get started.

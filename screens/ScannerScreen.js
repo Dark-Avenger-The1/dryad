@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { useSQLiteContext } from 'expo-sqlite';
 import { COLORS, FONTS } from '../constant/constant';
 import Card from '../components/Card';
 import AppButton from '../components/AppButton';
 import ScanResultModal from '../components/ScanResultModal';
 
 import { identifyPlantScanner } from '../hooks/ModalPlantCreation.js';
+import { addScannedPlant } from '../database/queries/Create';
 
 export default function ScannerScreen() {
+  const db = useSQLiteContext();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -26,11 +29,21 @@ export default function ScannerScreen() {
     }
   };
 
-  const handleConfirm = () => {
-    // TODO: database insert goes here (handled by the DB member).
-    // The object to save is `result`.
-    setModalVisible(false);
-    setResult(null);
+  // Saves the plant as 'pending', so it shows on the Home screen
+  const handleConfirm = async () => {
+    try {
+      const top = result.candidates[0];
+      await addScannedPlant(db, {
+        scientificName: top.scientificName,
+        commonName: top.commonName,
+        imageUri: result.image?.uri,
+        trefleDetails: result.info,
+      });
+      setModalVisible(false);
+      setResult(null);
+    } catch (e) {
+      Alert.alert('Could not save plant', e.message);
+    }
   };
 
   // User tapped a different candidate in the modal.
