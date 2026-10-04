@@ -5,6 +5,7 @@
 
 import { resolveGrowth } from '../../helper/PlantDefaults';
 import { notifyGardenChanged } from '../events';
+import { savePlantImage, deletePlantImage } from '../images';
 
 // Higher = more trustworthy (see helper/PlantDefaults.js resolveGrowth)
 const CONFIDENCE_RANK = { generic: 0, estimated: 1, verified: 2 };
@@ -51,7 +52,7 @@ function toRequirements(values) {
 //         scientificName: 'Musa acuminata',            // PlantNet result
 //         commonName: 'Dwarf banana',                  // optional
 //         description: null,                           // optional
-//         imageUri: result.image.uri,                  // optional, the user's photo
+//         imageUri: result.image.uri,                  // optional, the picked/captured photo
 //         trefleDetails: result.info,                  // Treffle.fetchPlantInfo() result, may be null
 //     });
 //
@@ -64,7 +65,11 @@ function toRequirements(values) {
 // species. A later scan replaces them only if its data is at least as
 // trustworthy, so a failed API call never overwrites verified data.
 //
-// Everything is saved in one transaction: all of it or nothing.
+// The photo is copied into permanent app storage (database/images.js) and
+// that permanent URI is saved, not ImagePicker's temporary one.
+//
+// Everything is saved in one transaction: all of it or nothing. If saving
+// fails, the copied photo is removed again.
 // Returns the new gardenPlantId.
 export async function addScannedPlant(
     db,
@@ -80,80 +85,88 @@ export async function addScannedPlant(
     const confidence = resolved.confidence;
     const displayName = commonName?.trim() || trefleDetails?.commonName?.trim() || name;
 
+    // Copy first: if the photo can't be saved, nothing is written
+    const savedImageUri = await savePlantImage(imageUri);
+
     let gardenPlantId;
 
-    await db.withTransactionAsync(async () => {
-        const existing = await db.getFirstAsync(
-            `SELECT plant_id AS plantId, data_confidence AS confidence
-             FROM plants WHERE scientific_name = ?`,
-            name
-        );
-
-        let plantId;
-        let saveRequirements = true;
-
-        if (!existing) {
-            const inserted = await db.getFirstAsync(
-                `INSERT INTO plants (scientific_name, common_name, description, data_confidence)
-                 VALUES (?, ?, ?, ?)
-                 RETURNING plant_id AS plantId`,
-                name, displayName, description, confidence
+    try {
+        await db.withTransactionAsync(async () => {
+            const existing = await db.getFirstAsync(
+                `SELECT plant_id AS plantId, data_confidence AS confidence
+                 FROM plants WHERE scientific_name = ?`,
+                name
             );
-            plantId = inserted.plantId;
-        } else {
-            plantId = existing.plantId;
-            saveRequirements = CONFIDENCE_RANK[confidence] >= CONFIDENCE_RANK[existing.confidence];
+
+            let plantId;
+            let saveRequirements = true;
+
+            if (!existing) {
+                const inserted = await db.getFirstAsync(
+                    `INSERT INTO plants (scientific_name, common_name, description, data_confidence)
+                     VALUES (?, ?, ?, ?)
+                     RETURNING plant_id AS plantId`,
+                    name, displayName, description, confidence
+                );
+                plantId = inserted.plantId;
+            } else {
+                plantId = existing.plantId;
+                saveRequirements = CONFIDENCE_RANK[confidence] >= CONFIDENCE_RANK[existing.confidence];
+
+                if (saveRequirements) {
+                    await db.runAsync(
+                        `UPDATE plants
+                         SET common_name     = ?,
+                             description     = COALESCE(?, description),
+                             data_confidence = ?
+                         WHERE plant_id = ?`,
+                        displayName, description, confidence, plantId
+                    );
+                }
+            }
 
             if (saveRequirements) {
                 await db.runAsync(
-                    `UPDATE plants
-                     SET common_name     = ?,
-                         description     = COALESCE(?, description),
-                         data_confidence = ?
-                     WHERE plant_id = ?`,
-                    displayName, description, confidence, plantId
+                    `INSERT INTO plant_requirements (
+                         plant_id, light_score, humidity_score, soil_nutrient_score,
+                         soil_humidity_score, min_ph, max_ph, min_temp_c, max_temp_c,
+                         days_to_harvest)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON CONFLICT (plant_id) DO UPDATE SET
+                         light_score         = excluded.light_score,
+                         humidity_score      = excluded.humidity_score,
+                         soil_nutrient_score = excluded.soil_nutrient_score,
+                         soil_humidity_score = excluded.soil_humidity_score,
+                         min_ph              = excluded.min_ph,
+                         max_ph              = excluded.max_ph,
+                         min_temp_c          = excluded.min_temp_c,
+                         max_temp_c          = excluded.max_temp_c,
+                         days_to_harvest     = excluded.days_to_harvest`,
+                    plantId,
+                    requirements.light,
+                    requirements.humidity,
+                    requirements.soilNutrients,
+                    requirements.soilHumidity,
+                    requirements.minPh,
+                    requirements.maxPh,
+                    requirements.minTempC,
+                    requirements.maxTempC,
+                    requirements.daysToHarvest
                 );
             }
-        }
 
-        if (saveRequirements) {
-            await db.runAsync(
-                `INSERT INTO plant_requirements (
-                     plant_id, light_score, humidity_score, soil_nutrient_score,
-                     soil_humidity_score, min_ph, max_ph, min_temp_c, max_temp_c,
-                     days_to_harvest)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                 ON CONFLICT (plant_id) DO UPDATE SET
-                     light_score         = excluded.light_score,
-                     humidity_score      = excluded.humidity_score,
-                     soil_nutrient_score = excluded.soil_nutrient_score,
-                     soil_humidity_score = excluded.soil_humidity_score,
-                     min_ph              = excluded.min_ph,
-                     max_ph              = excluded.max_ph,
-                     min_temp_c          = excluded.min_temp_c,
-                     max_temp_c          = excluded.max_temp_c,
-                     days_to_harvest     = excluded.days_to_harvest`,
-                plantId,
-                requirements.light,
-                requirements.humidity,
-                requirements.soilNutrients,
-                requirements.soilHumidity,
-                requirements.minPh,
-                requirements.maxPh,
-                requirements.minTempC,
-                requirements.maxTempC,
-                requirements.daysToHarvest
+            const garden = await db.getFirstAsync(
+                `INSERT INTO garden_plants (plant_id, image_uri)
+                 VALUES (?, ?)
+                 RETURNING garden_plant_id AS gardenPlantId`,
+                plantId, savedImageUri
             );
-        }
-
-        const garden = await db.getFirstAsync(
-            `INSERT INTO garden_plants (plant_id, image_uri)
-             VALUES (?, ?)
-             RETURNING garden_plant_id AS gardenPlantId`,
-            plantId, imageUri
-        );
-        gardenPlantId = garden.gardenPlantId;
-    });
+            gardenPlantId = garden.gardenPlantId;
+        });
+    } catch (error) {
+        deletePlantImage(savedImageUri);
+        throw error;
+    }
 
     notifyGardenChanged({ type: 'added', gardenPlantId });
     return gardenPlantId;

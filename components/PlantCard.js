@@ -13,36 +13,34 @@ import { COLORS, FONTS, RADIUS, SIZES, SPACING } from "../constant/constant";
 /**
  * Shape of the `plant` prop:
  * {
- *   id: string,
+ *   id: string | number,
  *   commonName: string,
  *   scientificName: string,
- *   plantType: string,
- *   description: string,
- *   image: ImageSourcePropType,   // { uri } or require(...)
+ *   description: string | null,
+ *   image: ImageSourcePropType,   // { uri } or require(...), may be undefined
  *   requirements: {
- *     soilTypes: string[],
+ *     soilNutrientLevel: string,
  *     lightLevel: string,
  *     phLevel: string,
  *     humidity: string,
  *     temperature: string,
- *   },
+ *   } | null,
  * }
  */
- 
+
 // Static placeholder data. Replace by passing a `plant` prop.
 export const SAMPLE_PLANT = {
   id: "1",
   commonName: "Snake Plant",
   scientificName: "Dracaena trifasciata",
-  plantType: "Indoor Plant",
   description:
     "A hardy plant that is easy to maintain and can tolerate lower-light environments.",
   image: {
     uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Sansevieria_trifasciata_-_Snake_Plant.jpg/640px-Sansevieria_trifasciata_-_Snake_Plant.jpg",
   },
   requirements: {
-    soilTypes: ["Well-draining soil", "Sandy soil"],
-    lightLevel: "Low to Bright Indirect Light",
+    soilNutrientLevel: "Low",
+    lightLevel: "Partial sun",
     phLevel: "5.5 - 7.5",
     humidity: "40% - 60%",
     temperature: "15°C - 30°C",
@@ -108,24 +106,24 @@ export default function PlantCard({ plant = SAMPLE_PLANT }) {
 
                 <Text style={styles.detailCommonName}>{plant.commonName}</Text>
                 <Text style={styles.detailScientificName}>{plant.scientificName}</Text>
-                <Text style={styles.plantType}>{plant.plantType}</Text>
-                <Text style={styles.detailDescription}>{plant.description}</Text>
+                {plant.description ? (
+                  <Text style={styles.detailDescription}>{plant.description}</Text>
+                ) : null}
 
                 <View style={styles.sectionDivider} />
                 <Text style={styles.sectionTitle}>Plant Requirements</Text>
 
-                <View style={styles.reqRow}>
-                <Text style={styles.reqLabel}>Compatible Soil Type:</Text>
-                {requirements.soilTypes.map((soil) => (
-                    <Text key={soil} style={styles.reqValue}>
-                    • {soil}
-                    </Text>
-                ))}
-                </View>
-                <RequirementRow label="Light Level:" value={requirements.lightLevel} />
-                <RequirementRow label="pH Level:" value={requirements.phLevel} />
-                <RequirementRow label="Humidity:" value={requirements.humidity} />
-                <RequirementRow label="Temperature:" value={requirements.temperature} />
+                {requirements ? (
+                  <>
+                    <RequirementRow label="Soil Nutrient Level:" value={requirements.soilNutrientLevel} />
+                    <RequirementRow label="Light Level:" value={requirements.lightLevel} />
+                    <RequirementRow label="pH Level:" value={requirements.phLevel} />
+                    <RequirementRow label="Humidity:" value={requirements.humidity} />
+                    <RequirementRow label="Temperature:" value={requirements.temperature} />
+                  </>
+                ) : (
+                  <Text style={styles.reqValue}>No requirements recorded.</Text>
+                )}
 
                 <Pressable
                 onPress={() => setVisible(false)}
@@ -253,12 +251,6 @@ const styles = StyleSheet.create({
     fontSize: SIZES.title,
     color: COLORS.textMuted,
     marginTop: 2,
-  },
-  plantType: {
-    fontFamily: FONTS.quicksandMedium,
-    fontSize: SIZES.body,
-    color: COLORS.cta,
-    marginTop: SPACING.sm,
   },
   detailDescription: {
     fontFamily: FONTS.quicksand,

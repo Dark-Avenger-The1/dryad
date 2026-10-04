@@ -86,25 +86,114 @@ export async function getPendingPlants(db) {
 
 // ---------- My Garden: cards ----------
 
-// Planted plants, A-Z by common name. description is the full text; shorten
-// it on the card with <Text numberOfLines={...}>.
-// Returns: [{ gardenPlantId, commonName, scientificName, imageUri, description }]
-export function getGardenPlantCards(db) {
-    return db.getAllAsync(`
+// Requirements as display values, turned into labels by the lookup tables.
+// Used with REQUIREMENT_JOINS and requirementsFromRow().
+const REQUIREMENT_COLUMNS = `
+    r.plant_id        AS requirementsPlantId,
+    r.min_ph          AS minPh,
+    r.max_ph          AS maxPh,
+    r.min_temp_c      AS minTempC,
+    r.max_temp_c      AS maxTempC,
+    (SELECT name FROM soil_nutrient_levels
+     WHERE max_score >= r.soil_nutrient_score
+     ORDER BY max_score LIMIT 1) AS soilNutrientLevel,
+    (SELECT name FROM light_levels
+     WHERE max_score >= r.light_score
+     ORDER BY max_score LIMIT 1) AS lightLevel,
+    h.name            AS humidityLevel,
+    h.min_percent     AS minHumidity,
+    h.max_percent     AS maxHumidity
+`;
+
+const REQUIREMENT_JOINS = `
+    LEFT JOIN plant_requirements r ON r.plant_id = g.plant_id
+    LEFT JOIN humidity_levels h    ON h.humidity_id = (
+             SELECT humidity_id FROM humidity_levels
+             WHERE max_score >= r.humidity_score
+             ORDER BY max_score LIMIT 1)
+`;
+
+// {
+//     soilNutrientLevel: 'Very low' | 'Low' | 'Medium' | 'High' | 'Very high',
+//     lightLevel:        'Shade' | 'Partial sun' | 'Full sun',
+//     ph:                { min: 6.0, max: 7.0 },
+//     humidity:          { level: 'Moderate', min: 45, max: 70 },   // %
+//     temperatureC:      { min: 15, max: 35 },
+// } | null when the plant has no requirements row
+function requirementsFromRow(row) {
+    if (row.requirementsPlantId === null) {
+        return null;
+    }
+    return {
+        soilNutrientLevel: row.soilNutrientLevel,
+        lightLevel: row.lightLevel,
+        ph: { min: row.minPh, max: row.maxPh },
+        humidity: { level: row.humidityLevel, min: row.minHumidity, max: row.maxHumidity },
+        temperatureC: { min: row.minTempC, max: row.maxTempC },
+    };
+}
+
+const LIGHT_PHRASES = {
+    'Shade': 'A shade-loving plant',
+    'Partial sun': 'A partial-sun plant',
+    'Full sun': 'A full-sun plant',
+};
+
+const HUMIDITY_PHRASES = {
+    'Dry': 'dry air',
+    'Moderate': 'moderate humidity',
+    'Humid': 'humid air',
+};
+
+// One-sentence summary of the requirements, used as the description when the
+// plant has none saved (the APIs don't provide one), e.g.
+// "A full-sun plant that likes moderate humidity, very high-nutrient soil,
+//  pH 6-6.8 and 10-30°C."
+function describeRequirements(req) {
+    if (!req) {
+        return null;
+    }
+    const light = LIGHT_PHRASES[req.lightLevel] ?? 'A plant';
+    const humidity = HUMIDITY_PHRASES[req.humidity.level] ?? `${req.humidity.min}-${req.humidity.max}% humidity`;
+    return `${light} that likes ${humidity}, ${req.soilNutrientLevel.toLowerCase()}-nutrient soil, `
+        + `pH ${req.ph.min}-${req.ph.max} and ${req.temperatureC.min}-${req.temperatureC.max}°C.`;
+}
+
+// Planted plants, A-Z by common name, with everything the card and its
+// pop-up show, in one query. description is the saved one, or else a
+// one-sentence summary of the requirements (see describeRequirements).
+// Returns: [{ gardenPlantId, commonName, scientificName, imageUri, description,
+//             requirements }]                // same shape as getPlantDetails
+export async function getGardenPlantCards(db) {
+    const rows = await db.getAllAsync(`
         SELECT g.garden_plant_id AS gardenPlantId,
                p.common_name     AS commonName,
                p.scientific_name AS scientificName,
                g.image_uri       AS imageUri,
-               p.description
+               p.description,
+               ${REQUIREMENT_COLUMNS}
         FROM garden_plants g
         JOIN plants p ON p.plant_id = g.plant_id
+        ${REQUIREMENT_JOINS}
         WHERE g.status = 'planted'
           AND g.archived_at IS NULL
         ORDER BY p.common_name COLLATE NOCASE, g.garden_plant_id
     `);
+
+    return rows.map((row) => {
+        const requirements = requirementsFromRow(row);
+        return {
+            gardenPlantId: row.gardenPlantId,
+            commonName: row.commonName,
+            scientificName: row.scientificName,
+            imageUri: row.imageUri,
+            description: row.description ?? describeRequirements(requirements),
+            requirements,
+        };
+    });
 }
 
-// ---------- My Garden / Archive: card pop-up ----------
+// ---------- My Garden / Archive: one plant ----------
 
 // One garden plant with its requirements as display values, in one query.
 // Works for archived plants too.
@@ -114,13 +203,7 @@ export function getGardenPlantCards(db) {
 //     gardenPlantId, commonName, scientificName, imageUri, description,
 //     status: 'pending' | 'planted', plantedAt, archivedAt,   // ISO UTC or null
 //     dataConfidence: 'verified' | 'estimated' | 'generic',
-//     requirements: {
-//         soilNutrientLevel: 'Very low' | 'Low' | 'Medium' | 'High' | 'Very high',
-//         lightLevel:        'Shade' | 'Partial sun' | 'Full sun',
-//         ph:                { min: 6.0, max: 7.0 },
-//         humidity:          { level: 'Moderate', min: 45, max: 70 },   // %
-//         temperatureC:      { min: 15, max: 35 },
-//     } | null
+//     requirements,                          // see requirementsFromRow
 // }
 export async function getPlantDetails(db, gardenPlantId) {
     const row = await db.getFirstAsync(
@@ -134,27 +217,10 @@ export async function getPlantDetails(db, gardenPlantId) {
                strftime('%Y-%m-%dT%H:%M:%SZ', g.planted_at)  AS plantedAt,
                strftime('%Y-%m-%dT%H:%M:%SZ', g.archived_at) AS archivedAt,
                p.data_confidence AS dataConfidence,
-               r.plant_id        AS requirementsPlantId,
-               r.min_ph          AS minPh,
-               r.max_ph          AS maxPh,
-               r.min_temp_c      AS minTempC,
-               r.max_temp_c      AS maxTempC,
-               (SELECT name FROM soil_nutrient_levels
-                WHERE max_score >= r.soil_nutrient_score
-                ORDER BY max_score LIMIT 1) AS soilNutrientLevel,
-               (SELECT name FROM light_levels
-                WHERE max_score >= r.light_score
-                ORDER BY max_score LIMIT 1) AS lightLevel,
-               h.name            AS humidityLevel,
-               h.min_percent     AS minHumidity,
-               h.max_percent     AS maxHumidity
+               ${REQUIREMENT_COLUMNS}
         FROM garden_plants g
-        JOIN plants p                  ON p.plant_id = g.plant_id
-        LEFT JOIN plant_requirements r ON r.plant_id = g.plant_id
-        LEFT JOIN humidity_levels h    ON h.humidity_id = (
-                 SELECT humidity_id FROM humidity_levels
-                 WHERE max_score >= r.humidity_score
-                 ORDER BY max_score LIMIT 1)
+        JOIN plants p ON p.plant_id = g.plant_id
+        ${REQUIREMENT_JOINS}
         WHERE g.garden_plant_id = ?
         `,
         gardenPlantId
@@ -164,23 +230,18 @@ export async function getPlantDetails(db, gardenPlantId) {
         return null;
     }
 
+    const requirements = requirementsFromRow(row);
     return {
         gardenPlantId: row.gardenPlantId,
         commonName: row.commonName,
         scientificName: row.scientificName,
         imageUri: row.imageUri,
-        description: row.description,
+        description: row.description ?? describeRequirements(requirements),
         status: row.status,
         plantedAt: row.plantedAt,
         archivedAt: row.archivedAt,
         dataConfidence: row.dataConfidence,
-        requirements: row.requirementsPlantId === null ? null : {
-            soilNutrientLevel: row.soilNutrientLevel,
-            lightLevel: row.lightLevel,
-            ph: { min: row.minPh, max: row.maxPh },
-            humidity: { level: row.humidityLevel, min: row.minHumidity, max: row.maxHumidity },
-            temperatureC: { min: row.minTempC, max: row.maxTempC },
-        },
+        requirements,
     };
 }
 
