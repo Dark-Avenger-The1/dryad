@@ -1,48 +1,36 @@
 import * as ImagePicker from 'expo-image-picker';
 
-export default async function cameraHelper(choice){
-    try {
-        const result=null;
-        const permission= null;
-        switch(choice){
-            case "capture":
-                permission = await ImagePicker.requestCameraPermissionsAsync();
-                if (!permission.granted) {
-                    throw new Error('Permission needed', 'Camera access is required to scan a plant.');
-                }
-                
-                result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ['images'],
-                quality: 0.7,
-                });
-                
-                if (!result.canceled) {
-                    return result.assets[0];
-                }else{
-                    throw new Error("Cancelled","Cancelled capture of photo");
-                }
-                break;
-            case "pick-gallery":
-                const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                    if (!permission.granted) {
-                        throw new Error('Permission needed', 'Media library access is required to upload a photo.');
-                    }
-                    
-                    result = await ImagePicker.launchImageLibraryAsync({
-                        mediaTypes: ['images'],
-                        quality: 0.7,
-                    });
-                    
-                    if (!result.canceled) {
-                        return result.assets[0];
-                    }else{
-                        throw new Error("Cancelled","Cancelled capture of photo");
-                    }
-                break;
-                default:
-                    throw new Error("Unidentified Argument",`${choice} in the argument does not identified.`)
-        }
-    } catch (error) {
-        
-    }
+export default async function cameraHelper(choice) {
+  let permission;
+  let result;
+
+  switch (choice) {
+    case 'capture':
+      permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        throw new Error('Camera access is required to scan a plant.');
+      }
+      result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.7,
+      });
+      break;
+
+    case 'pick-gallery':
+      permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        throw new Error('Media library access is required to upload a photo.');
+      }
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.7,
+      });
+      break;
+
+    default:
+      throw new Error(`Unknown choice: ${choice}`);
+  }
+
+  if (result.canceled) return null;   // user cancelled — not an error
+  return result.assets[0];
 }
