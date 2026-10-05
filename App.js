@@ -82,7 +82,7 @@ export default function App() {
       onLayout={onLayoutRootView}
     >
       <SQLiteProvider
-        databaseName="plants.db"
+        databaseName="dryad.db"
         onInit={migrateDbIfNeeded}
       >
         <SafeAreaProvider>

@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
   Pressable,
-} from 'react-native';
+} from "react-native";
 
-import { Ionicons } from '@expo/vector-icons';
-import PlantRoutineModal from '../components/PlantRoutineModal';
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import PlantRoutineModal from "../components/PlantRoutineModal";
 
 import {
   COLORS,
@@ -16,277 +18,289 @@ import {
   SIZES,
   SPACING,
   RADIUS,
-} from '../constant/constant';
+} from "../constant/constant";
 
 export default function DailyRoutineScreen() {
-  // GRID or LIST
-  const [viewMode, setViewMode] = useState('grid');
+  // Controls how plant cards are displayed.
+  const [viewMode, setViewMode] = useState("grid");
 
-  // MODAL
+  // Controls the selected plant and routine modal.
   const [selectedPlant, setSelectedPlant] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // TEMPORARY WEATHER DATA
+  const isGridView = viewMode === "grid";
+  const isListView = viewMode === "list";
+
+  // Temporary weather data.
+  // Replaced later with data from the weather API.
   const weatherData = {
     temperature: 29,
     humidity: 78,
-    weather: 'Rainy',
-    icon: 'rainy-outline',
+    weather: "Rainy",
+    icon: "rainy-outline",
   };
 
-  // TEMPORARY PLANT DATA
-const plants = [
-  { id: 1, name: 'Snake Plant' },
-  { id: 2, name: 'Aloe Vera' },
-  { id: 3, name: 'Peace Lily' },
-  { id: 4, name: 'Monstera' },
-  { id: 5, name: 'Spider Plant' },
-  { id: 6, name: 'ZZ Plant' },
-  { id: 7, name: 'Rubber Plant' },
-  { id: 8, name: 'Pothos' },
-  { id: 9, name: 'Calathea' },
-  { id: 10, name: 'Philodendron' },
-  { id: 11, name: 'Fern' },
-  { id: 12, name: 'Basil' },
-];
+  // Temporary plant data.
+  // Replaced later with saved plants from the database/storage.
+  const plants = [
+    { id: 1, name: "Snake Plant" },
+    { id: 2, name: "Aloe Vera" },
+    { id: 3, name: "Peace Lily" },
+    { id: 4, name: "Monstera" },
+    { id: 5, name: "Spider Plant" },
+    { id: 6, name: "ZZ Plant" },
+    { id: 7, name: "Rubber Plant" },
+    { id: 8, name: "Pothos" },
+    { id: 9, name: "Calathea" },
+    { id: 10, name: "Philodendron" },
+    { id: 11, name: "Fern" },
+    { id: 12, name: "Basil" },
+  ];
 
-  // TEMPORARY WEATHER-BASED INSTRUCTIONS
+  // Temporary rule-based instructions based on the current weather.
   const getPlantInstruction = (weather) => {
-    if (weather === 'Rainy') {
-      return 'Skip watering today. Keep the plant protected from too much rain and check if the soil is already wet.';
+    if (weather === "Rainy") {
+      return "Skip watering today. Keep the plant protected from too much rain and check if the soil is already wet.";
     }
 
-    if (weather === 'Sunny') {
-      return 'Check the soil for dryness. Water the plant if needed and avoid too much direct sunlight.';
+    if (weather === "Sunny") {
+      return "Check the soil for dryness. Water the plant if needed and avoid too much direct sunlight.";
     }
 
-    if (weather === 'Cloudy') {
-      return 'Follow the normal watering routine and place the plant somewhere it can still receive enough light.';
+    if (weather === "Cloudy") {
+      return "Follow the normal watering routine and place the plant somewhere it can still receive enough light.";
     }
 
-    return 'Check the plant condition and follow its normal care routine.';
+    return "Check the plant condition and follow its normal care routine.";
   };
 
-  // OPEN MODAL
   const openPlantModal = (plant) => {
     setSelectedPlant(plant);
     setModalVisible(true);
   };
 
-  // CLOSE MODAL
   const closePlantModal = () => {
     setModalVisible(false);
   };
 
-  // TODAY'S DATE
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
+  // Displays today's date in the format "MMM DD, YYYY" (e.g., "Jun 15, 2024").
+  const currentDate = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 
   return (
     <>
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* PAGE TITLE */}
-        <Text style={styles.title}>Daily Routine</Text>
+      {/* Keeps content below the notch, status bar, or Dynamic Island. */}
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <View style={styles.screen}>
+          <Text style={styles.title}>Daily Routine</Text>
 
-        {/* WEATHER CARD */}
-        <View style={styles.weatherCard}>
-          <Text style={styles.date}>{currentDate}</Text>
+          {/* Weather Information */}
+          <View style={styles.weatherCard}>
+            <Text style={styles.date}>{currentDate}</Text>
 
-          <View style={styles.weatherInformation}>
-            {/* TEMPERATURE */}
-            <View style={styles.weatherItem}>
-              <Ionicons
-                name="thermometer-outline"
-                size={22}
-                color={COLORS.primary}
-              />
+            <View style={styles.weatherInformation}>
+              {/* Temperature */}
+              <View style={styles.weatherItem}>
+                <Ionicons
+                  name="thermometer-outline"
+                  size={22}
+                  color={COLORS.primary}
+                />
 
-              <Text style={styles.weatherValue}>
-                {weatherData.temperature}°
-              </Text>
+                <Text style={styles.weatherValue}>
+                  {weatherData.temperature}°
+                </Text>
 
-              <Text style={styles.weatherLabel}>
-                Temperature
-              </Text>
-            </View>
+                <Text style={styles.weatherLabel}>
+                  Temperature
+                </Text>
+              </View>
 
-            <View style={styles.verticalDivider} />
+              <View style={styles.verticalDivider} />
 
-            {/* HUMIDITY */}
-            <View style={styles.weatherItem}>
-              <Ionicons
-                name="water-outline"
-                size={22}
-                color={COLORS.primary}
-              />
+              {/* Humidity */}
+              <View style={styles.weatherItem}>
+                <Ionicons
+                  name="water-outline"
+                  size={22}
+                  color={COLORS.primary}
+                />
 
-              <Text style={styles.weatherValue}>
-                {weatherData.humidity}%
-              </Text>
+                <Text style={styles.weatherValue}>
+                  {weatherData.humidity}%
+                </Text>
 
-              <Text style={styles.weatherLabel}>
-                Humidity
-              </Text>
-            </View>
+                <Text style={styles.weatherLabel}>
+                  Humidity
+                </Text>
+              </View>
 
-            <View style={styles.verticalDivider} />
+              <View style={styles.verticalDivider} />
 
-            {/* WEATHER */}
-            <View style={styles.weatherItem}>
-              <Ionicons
-                name={weatherData.icon}
-                size={22}
-                color={COLORS.primary}
-              />
+              {/* Weather Condition */}
+              <View style={styles.weatherItem}>
+                <Ionicons
+                  name={weatherData.icon}
+                  size={22}
+                  color={COLORS.primary}
+                />
 
-              <Text style={styles.weatherValue}>
-                {weatherData.weather}
-              </Text>
+                <Text style={styles.weatherValue}>
+                  {weatherData.weather}
+                </Text>
 
-              <Text style={styles.weatherLabel}>
-                Weather
-              </Text>
+                <Text style={styles.weatherLabel}>
+                  Weather
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* PLANT SECTION */}
-        <View style={styles.plantSection}>
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionTextContainer}>
-            <Text style={styles.sectionTitle}>
-              My Plants
-            </Text>
+          {/* Plant Routine Section */}
+          <View style={styles.plantSection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTextContainer}>
+                <Text style={styles.sectionTitle}>
+                  My Plants
+                </Text>
 
-            <Text style={styles.sectionSubtitle}>
-              Plants that need your attention today
-            </Text>
-          </View>
+                <Text style={styles.sectionSubtitle}>
+                  Plants that need your attention today
+                </Text>
+              </View>
 
-          <View style={styles.viewSwitcher}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.viewButton,
-                viewMode === 'grid' && styles.activeViewButton,
-                pressed && styles.viewButtonPressed,
-              ]}
-              onPress={() => setViewMode('grid')}
-            >
-              <Ionicons
-                name="grid-outline"
-                size={18}
-                color={
-                  viewMode === 'grid'
-                    ? COLORS.white
-                    : COLORS.primary
-                }
-              />
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.viewButton,
-                viewMode === 'list' && styles.activeViewButton,
-                pressed && styles.viewButtonPressed,
-              ]}
-              onPress={() => setViewMode('list')}
-            >
-              <Ionicons
-                name="list-outline"
-                size={21}
-                color={
-                  viewMode === 'list'
-                    ? COLORS.white
-                    : COLORS.primary
-                }
-              />
-            </Pressable>
-          </View>
-        </View>
-        <ScrollView
-          style={styles.plantScrollArea}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
-        >
-          {viewMode === 'grid' ? (
-            <View style={styles.gridContainer}>
-              {plants.map((plant) => (
+              {/* Grid / List Switcher */}
+              <View style={styles.viewSwitcher}>
                 <Pressable
-                  key={plant.id}
+                  onPress={() => setViewMode("grid")}
                   style={({ pressed }) => [
-                    styles.gridCard,
-                    pressed && styles.pressedCard,
+                    styles.viewButton,
+                    isGridView && styles.activeViewButton,
+                    pressed && styles.viewButtonPressed,
                   ]}
-                  onPress={() => openPlantModal(plant)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Grid view"
                 >
-                  <View style={styles.gridIconContainer}>
-                    <Ionicons
-                      name="leaf-outline"
-                      size={36}
-                      color={COLORS.primary}
-                    />
-                  </View>
-
-                  <Text style={styles.gridPlantName}>
-                    {plant.name}
-                  </Text>
-
-                  <Text style={styles.tapText}>
-                    Tap for routine
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.listContainer}>
-              {plants.map((plant) => (
-                <Pressable
-                  key={plant.id}
-                  style={({ pressed }) => [
-                    styles.listCard,
-                    pressed && styles.pressedCard,
-                  ]}
-                  onPress={() => openPlantModal(plant)}
-                >
-                  <View style={styles.listIconContainer}>
-                    <Ionicons
-                      name="leaf-outline"
-                      size={30}
-                      color={COLORS.primary}
-                    />
-                  </View>
-
-                  <View style={styles.listPlantInformation}>
-                    <Text style={styles.listPlantName}>
-                      {plant.name}
-                    </Text>
-
-                    <Text style={styles.listInstructions}>
-                      Tap to view today's instructions
-                    </Text>
-                  </View>
-
                   <Ionicons
-                    name="chevron-forward-outline"
-                    size={22}
-                    color={COLORS.textMuted}
+                    name="grid-outline"
+                    size={18}
+                    color={
+                      isGridView
+                        ? COLORS.white
+                        : COLORS.primary
+                    }
                   />
                 </Pressable>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-      </View>
-      </ScrollView>
 
-      {/* PLANT ROUTINE POPUP */}
+                <Pressable
+                  onPress={() => setViewMode("list")}
+                  style={({ pressed }) => [
+                    styles.viewButton,
+                    isListView && styles.activeViewButton,
+                    pressed && styles.viewButtonPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="List view"
+                >
+                  <Ionicons
+                    name="list-outline"
+                    size={21}
+                    color={
+                      isListView
+                        ? COLORS.white
+                        : COLORS.primary
+                    }
+                  />
+                </Pressable>
+              </View>
+            </View>
+
+            {/*
+              Only this area scrolls.
+              The title, weather card, and plant container remain fixed.
+            */}
+            <ScrollView
+              style={styles.plantScrollArea}
+              contentContainerStyle={styles.plantScrollContent}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              {isGridView ? (
+                <View style={styles.gridContainer}>
+                  {plants.map((plant) => (
+                    <Pressable
+                      key={plant.id}
+                      onPress={() => openPlantModal(plant)}
+                      style={({ pressed }) => [
+                        styles.gridCard,
+                        pressed && styles.pressedCard,
+                      ]}
+                    >
+                      <View style={styles.gridIconContainer}>
+                        <Ionicons
+                          name="leaf-outline"
+                          size={36}
+                          color={COLORS.primary}
+                        />
+                      </View>
+
+                      <Text style={styles.gridPlantName}>
+                        {plant.name}
+                      </Text>
+
+                      <Text style={styles.tapText}>
+                        Tap for routine
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.listContainer}>
+                  {plants.map((plant) => (
+                    <Pressable
+                      key={plant.id}
+                      onPress={() => openPlantModal(plant)}
+                      style={({ pressed }) => [
+                        styles.listCard,
+                        pressed && styles.pressedCard,
+                      ]}
+                    >
+                      <View style={styles.listIconContainer}>
+                        <Ionicons
+                          name="leaf-outline"
+                          size={30}
+                          color={COLORS.primary}
+                        />
+                      </View>
+
+                      <View style={styles.listPlantInformation}>
+                        <Text style={styles.listPlantName}>
+                          {plant.name}
+                        </Text>
+
+                        <Text style={styles.listInstructions}>
+                          Tap to view today's instructions
+                        </Text>
+                      </View>
+
+                      <Ionicons
+                        name="chevron-forward-outline"
+                        size={22}
+                        color={COLORS.textMuted}
+                      />
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </SafeAreaView>
+
+      {/* Plant Routine Popup */}
       <PlantRoutineModal
         visible={modalVisible}
         plant={selectedPlant}
@@ -298,19 +312,22 @@ const plants = [
 }
 
 const styles = StyleSheet.create({
-screen: {
-  flex: 1,
-  backgroundColor: COLORS.background,
-},
+  // Prevents content from overlapping the notch or Dynamic Island.
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
 
-container: {
-  flex: 1,
-  paddingHorizontal: SPACING.lg,
-  paddingTop: SPACING.lg,
-  paddingBottom: SPACING.md,
-},
+  // Main screen
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
+  },
 
-  /* TITLE */
+  // Page title
   title: {
     fontFamily: FONTS.heading,
     fontSize: SIZES.h2,
@@ -318,14 +335,12 @@ container: {
     marginBottom: SPACING.md,
   },
 
-  /* WEATHER */
+  // Weather Card
   weatherCard: {
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.lg,
-
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-
     marginBottom: SPACING.md,
 
     shadowColor: COLORS.black,
@@ -342,19 +357,19 @@ container: {
     fontFamily: FONTS.quicksandBold,
     fontSize: SIZES.small,
     color: COLORS.textMuted,
-    textAlign: 'right',
+    textAlign: "right",
     marginBottom: SPACING.sm,
-  },  
+  },
 
   weatherInformation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
   weatherItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
 
   weatherValue: {
@@ -377,10 +392,9 @@ container: {
     backgroundColor: COLORS.softdivider,
   },
 
-  /* PLANT SECTION */
+  // Plant Section
   plantSection: {
     flex: 1,
-
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.lg,
     padding: SPACING.md,
@@ -396,9 +410,9 @@ container: {
   },
 
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: SPACING.lg,
   },
 
@@ -420,6 +434,7 @@ container: {
     marginTop: 2,
   },
 
+  // Scrollable area inside the plant section
   plantScrollArea: {
     flex: 1,
   },
@@ -428,9 +443,9 @@ container: {
     paddingBottom: SPACING.md,
   },
 
-  /* GRID / LIST SWITCHER */
+  // Grid / List Switch
   viewSwitcher: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.md,
     padding: 3,
@@ -440,8 +455,8 @@ container: {
     width: 37,
     height: 34,
     borderRadius: RADIUS.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   activeViewButton: {
@@ -452,20 +467,20 @@ container: {
     opacity: 0.7,
   },
 
-  /* GRID */
+  // Grid Layout
   gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
 
   gridCard: {
-    width: '48%',
+    width: "48%",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.md,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.sm,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.softdivider,
@@ -476,8 +491,8 @@ container: {
     height: 52,
     borderRadius: 26,
     backgroundColor: COLORS.imagePlaceholder,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: SPACING.sm,
   },
 
@@ -485,7 +500,7 @@ container: {
     fontFamily: FONTS.quicksandBold,
     fontSize: SIZES.body,
     color: COLORS.text,
-    textAlign: 'center',
+    textAlign: "center",
   },
 
   tapText: {
@@ -495,14 +510,14 @@ container: {
     marginTop: SPACING.xs,
   },
 
-  /* LIST */
+  // List Layout
   listContainer: {
     gap: SPACING.md,
   },
 
   listCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
@@ -516,8 +531,8 @@ container: {
     height: 44,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.imagePlaceholder,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: SPACING.md,
   },
 
@@ -538,8 +553,7 @@ container: {
     marginTop: 3,
   },
 
-  /* PRESS EFFECT */
-
+  // Card press animation
   pressedCard: {
     opacity: 0.65,
     transform: [{ scale: 0.96 }],

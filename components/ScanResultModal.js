@@ -76,11 +76,7 @@ export default function ScanResultModal({
       : "Not available";
 
   const soilValue = care?.soil
-    ? care.soil.band === "poor"
-      ? "Poor / sandy soil"
-      : care.soil.band === "rich"
-      ? "Rich, well-composted soil"
-      : "Average garden soil"
+    ? care.soil.level
     : "Not available";
 
   return (
@@ -152,7 +148,7 @@ export default function ScanResultModal({
             <View style={styles.sectionDivider} />
             <Text style={styles.sectionTitle}>Plant Requirements</Text>
 
-            <RequirementRow label="Compatible Soil Type:" value={soilValue} />
+            <RequirementRow label="Soil Nutrient Level:" value={soilValue} />
             <RequirementRow label="Light Level:" value={lightValue} />
             <RequirementRow label="pH Level:" value={phValue} />
             <RequirementRow label="Humidity:" value={humidityValue} />
