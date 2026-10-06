@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
+  Image,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -19,63 +20,56 @@ import {
   SPACING,
   RADIUS,
 } from "../constant/constant";
+import { useLiveQuery } from "../database/useLiveQuery";
+import { getDailyRoutine } from "../database/queries/Read";
+
+// Temporary weather data, in the shape services/weatherService.js returns.
+// Replaced later with data from the weather API.
+// Kept outside the component so useLiveQuery gets the same object on every
+// render (a new object each render would re-run the query endlessly).
+const TEMP_WEATHER = {
+  temp: { now: 29, maxTemp: 31, minTemp: 24 },
+  humidity: 78,
+  rain: 8,   // mm today
+  light: 2,  // hours of sunshine today
+};
+
+// Label and icon for the weather card. Uses the same limits as
+// logic/DailyTask.js (more than 5 mm = rain, less than 3 h of sun = cloudy).
+function describeWeather(weather) {
+  if (weather.rain > 5) {
+    return { label: "Rainy", icon: "rainy-outline" };
+  }
+  if (weather.light < 3) {
+    return { label: "Cloudy", icon: "cloudy-outline" };
+  }
+  return { label: "Sunny", icon: "sunny-outline" };
+}
 
 export default function DailyRoutineScreen() {
   // Controls how plant cards are displayed.
   const [viewMode, setViewMode] = useState("grid");
 
   // Controls the selected plant and routine modal.
-  const [selectedPlant, setSelectedPlant] = useState(null);
+  // Only the id is stored, so the modal always shows the latest data.
+  const [selectedPlantId, setSelectedPlantId] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const isGridView = viewMode === "grid";
   const isListView = viewMode === "list";
 
-  // Temporary weather data.
-  // Replaced later with data from the weather API.
-  const weatherData = {
-    temperature: 29,
-    humidity: 78,
-    weather: "Rainy",
-    icon: "rainy-outline",
-  };
+  const weather = TEMP_WEATHER;
+  const weatherDisplay = describeWeather(weather);
 
-  // Temporary plant data.
-  // Replaced later with saved plants from the database/storage.
-  const plants = [
-    { id: 1, name: "Snake Plant" },
-    { id: 2, name: "Aloe Vera" },
-    { id: 3, name: "Peace Lily" },
-    { id: 4, name: "Monstera" },
-    { id: 5, name: "Spider Plant" },
-    { id: 6, name: "ZZ Plant" },
-    { id: 7, name: "Rubber Plant" },
-    { id: 8, name: "Pothos" },
-    { id: 9, name: "Calathea" },
-    { id: 10, name: "Philodendron" },
-    { id: 11, name: "Fern" },
-    { id: 12, name: "Basil" },
-  ];
+  // Planted plants with today's tasks. Refreshes by itself when the garden changes.
+  const { data, loading, error } = useLiveQuery(getDailyRoutine, weather);
+  const plants = data ?? [];
 
-  // Temporary rule-based instructions based on the current weather.
-  const getPlantInstruction = (weather) => {
-    if (weather === "Rainy") {
-      return "Skip watering today. Keep the plant protected from too much rain and check if the soil is already wet.";
-    }
-
-    if (weather === "Sunny") {
-      return "Check the soil for dryness. Water the plant if needed and avoid too much direct sunlight.";
-    }
-
-    if (weather === "Cloudy") {
-      return "Follow the normal watering routine and place the plant somewhere it can still receive enough light.";
-    }
-
-    return "Check the plant condition and follow its normal care routine.";
-  };
+  const selectedPlant =
+    plants.find((plant) => plant.gardenPlantId === selectedPlantId) ?? null;
 
   const openPlantModal = (plant) => {
-    setSelectedPlant(plant);
+    setSelectedPlantId(plant.gardenPlantId);
     setModalVisible(true);
   };
 
@@ -111,7 +105,7 @@ export default function DailyRoutineScreen() {
                 />
 
                 <Text style={styles.weatherValue}>
-                  {weatherData.temperature}°
+                  {Math.round(weather.temp.now)}°
                 </Text>
 
                 <Text style={styles.weatherLabel}>
@@ -130,7 +124,7 @@ export default function DailyRoutineScreen() {
                 />
 
                 <Text style={styles.weatherValue}>
-                  {weatherData.humidity}%
+                  {weather.humidity}%
                 </Text>
 
                 <Text style={styles.weatherLabel}>
@@ -143,13 +137,13 @@ export default function DailyRoutineScreen() {
               {/* Weather Condition */}
               <View style={styles.weatherItem}>
                 <Ionicons
-                  name={weatherData.icon}
+                  name={weatherDisplay.icon}
                   size={22}
                   color={COLORS.primary}
                 />
 
                 <Text style={styles.weatherValue}>
-                  {weatherData.weather}
+                  {weatherDisplay.label}
                 </Text>
 
                 <Text style={styles.weatherLabel}>
@@ -228,11 +222,21 @@ export default function DailyRoutineScreen() {
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled
             >
-              {isGridView ? (
+              {loading ? (
+                <Text style={styles.stateText}>Loading plants...</Text>
+              ) : error ? (
+                <Text style={styles.stateText}>
+                  Could not load plants: {error.message}
+                </Text>
+              ) : plants.length === 0 ? (
+                <Text style={styles.stateText}>
+                  No planted plants yet. Plant one from Home to see its routine here.
+                </Text>
+              ) : isGridView ? (
                 <View style={styles.gridContainer}>
                   {plants.map((plant) => (
                     <Pressable
-                      key={plant.id}
+                      key={plant.gardenPlantId}
                       onPress={() => openPlantModal(plant)}
                       style={({ pressed }) => [
                         styles.gridCard,
@@ -240,15 +244,27 @@ export default function DailyRoutineScreen() {
                       ]}
                     >
                       <View style={styles.gridIconContainer}>
-                        <Ionicons
-                          name="leaf-outline"
-                          size={36}
-                          color={COLORS.primary}
-                        />
+                        {plant.imageUri ? (
+                          <Image
+                            source={{ uri: plant.imageUri }}
+                            style={styles.gridImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Ionicons
+                            name="leaf-outline"
+                            size={36}
+                            color={COLORS.primary}
+                          />
+                        )}
+
+                        {plant.needsAttention && (
+                          <View style={styles.attentionDot} />
+                        )}
                       </View>
 
                       <Text style={styles.gridPlantName}>
-                        {plant.name}
+                        {plant.commonName}
                       </Text>
 
                       <Text style={styles.tapText}>
@@ -261,7 +277,7 @@ export default function DailyRoutineScreen() {
                 <View style={styles.listContainer}>
                   {plants.map((plant) => (
                     <Pressable
-                      key={plant.id}
+                      key={plant.gardenPlantId}
                       onPress={() => openPlantModal(plant)}
                       style={({ pressed }) => [
                         styles.listCard,
@@ -269,20 +285,36 @@ export default function DailyRoutineScreen() {
                       ]}
                     >
                       <View style={styles.listIconContainer}>
-                        <Ionicons
-                          name="leaf-outline"
-                          size={30}
-                          color={COLORS.primary}
-                        />
+                        {plant.imageUri ? (
+                          <Image
+                            source={{ uri: plant.imageUri }}
+                            style={styles.listImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Ionicons
+                            name="leaf-outline"
+                            size={30}
+                            color={COLORS.primary}
+                          />
+                        )}
+
+                        {plant.needsAttention && (
+                          <View style={styles.attentionDot} />
+                        )}
                       </View>
 
                       <View style={styles.listPlantInformation}>
                         <Text style={styles.listPlantName}>
-                          {plant.name}
+                          {plant.commonName}
                         </Text>
 
-                        <Text style={styles.listInstructions}>
-                          Tap to view today's instructions
+                        <Text
+                          style={styles.listInstructions}
+                          numberOfLines={1}
+                        >
+                          {plant.tasks[0]?.text ??
+                            "Tap to view today's instructions"}
                         </Text>
                       </View>
 
@@ -304,7 +336,6 @@ export default function DailyRoutineScreen() {
       <PlantRoutineModal
         visible={modalVisible}
         plant={selectedPlant}
-        instruction={getPlantInstruction(weatherData.weather)}
         onClose={closePlantModal}
       />
     </>
@@ -487,13 +518,41 @@ const styles = StyleSheet.create({
   },
 
   gridIconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: COLORS.imagePlaceholder,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.sm,
+  },
+
+  gridImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 36,
+  },
+
+  // Small dot on the photo when a plant has something to do today
+  attentionDot: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: COLORS.cta,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+
+  // Loading, error, and empty messages
+  stateText: {
+    fontFamily: FONTS.quicksand,
+    fontSize: SIZES.body,
+    color: COLORS.textMuted,
+    textAlign: "center",
+    marginTop: SPACING.xl,
   },
 
   gridPlantName: {
@@ -527,13 +586,19 @@ const styles = StyleSheet.create({
   },
 
   listIconContainer: {
-    width: 44,
-    height: 44,
+    width: 52,
+    height: 52,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.imagePlaceholder,
     alignItems: "center",
     justifyContent: "center",
     marginRight: SPACING.md,
+  },
+
+  listImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: RADIUS.md,
   },
 
   listPlantInformation: {

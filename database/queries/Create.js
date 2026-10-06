@@ -1,8 +1,3 @@
-// Create queries: saving a new plant.
-//
-// Every function takes the database as its first argument, which a component
-// gets with useSQLiteContext() from 'expo-sqlite'.
-
 import { resolveGrowth } from '../../helper/PlantDefaults';
 import { notifyGardenChanged } from '../events';
 import { savePlantImage, deletePlantImage } from '../images';

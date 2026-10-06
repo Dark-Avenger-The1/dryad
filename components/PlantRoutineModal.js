@@ -5,6 +5,8 @@ import {
   Text,
   Pressable,
   StyleSheet,
+  Image,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,12 +18,28 @@ import {
   RADIUS,
 } from '../constant/constant';
 
+// Icon for each task type from logic/DailyTask.js.
+const TASK_ICONS = {
+  water: 'water-outline',
+  shade: 'sunny-outline',
+  protect: 'snow-outline',
+  mist: 'cloud-outline',
+  airflow: 'swap-horizontal-outline',
+  feed: 'nutrition-outline',
+  info: 'information-circle-outline',
+};
+
+/**
+ * plant: one item from getDailyRoutine() in database/queries/Read.js
+ *   { gardenPlantId, commonName, imageUri, tasks: [{ type, text, priority? }], ... }
+ */
 export default function PlantRoutineModal({
   visible,
   plant,
-  instruction,
   onClose,
 }) {
+  const tasks = plant?.tasks ?? [];
+
   return (
     <Modal
       visible={visible}
@@ -32,24 +50,61 @@ export default function PlantRoutineModal({
       <View style={styles.overlay}>
         <View style={styles.card}>
           <View style={styles.iconContainer}>
-            <Ionicons
-              name="leaf-outline"
-              size={42}
-              color={COLORS.primary}
-            />
+            {plant?.imageUri ? (
+              <Image
+                source={{ uri: plant.imageUri }}
+                style={styles.image}
+                resizeMode="cover"
+              />
+            ) : (
+              <Ionicons
+                name="leaf-outline"
+                size={42}
+                color={COLORS.primary}
+              />
+            )}
           </View>
 
           <Text style={styles.plantName}>
-            {plant?.name}
+            {plant?.commonName}
           </Text>
 
           <Text style={styles.heading}>
             Today's Instructions
           </Text>
 
-          <Text style={styles.instruction}>
-            {instruction}
-          </Text>
+          {tasks.length === 0 ? (
+            <Text style={styles.instruction}>
+              No care information for this plant yet.
+            </Text>
+          ) : (
+            <ScrollView
+              style={styles.taskList}
+              contentContainerStyle={styles.taskListContent}
+            >
+              {tasks.map((task, index) => (
+                <View key={`${task.type}-${index}`} style={styles.taskRow}>
+                  <Ionicons
+                    name={TASK_ICONS[task.type] ?? TASK_ICONS.info}
+                    size={20}
+                    color={
+                      task.priority === 'high'
+                        ? COLORS.cta
+                        : COLORS.primary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.taskText,
+                      task.priority === 'high' && styles.taskTextHigh,
+                    ]}
+                  >
+                    {task.text}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          )}
 
           <Pressable
             style={({ pressed }) => [
@@ -96,6 +151,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
 
+  image: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+  },
+
   plantName: {
     fontFamily: FONTS.quicksandBold,
     fontSize: SIZES.h2,
@@ -117,6 +178,38 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 21,
     marginBottom: SPACING.xl,
+  },
+
+  // Scrolls only if a plant has many tasks
+  taskList: {
+    alignSelf: 'stretch',
+    maxHeight: 260,
+    marginBottom: SPACING.xl,
+  },
+
+  taskListContent: {
+    gap: SPACING.sm,
+  },
+
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+  },
+
+  taskText: {
+    flex: 1,
+    fontFamily: FONTS.quicksand,
+    fontSize: SIZES.body,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+
+  taskTextHigh: {
+    fontFamily: FONTS.quicksandBold,
   },
 
   closeButton: {

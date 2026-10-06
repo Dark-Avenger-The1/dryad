@@ -1,14 +1,7 @@
-// Update queries: planting progress, status, care and restoring from Archive.
-//
-// Every function takes the database as its first argument, which a component
-// gets with useSQLiteContext() from 'expo-sqlite'. Each returns true if a plant
-// was changed, false if nothing matched (wrong id, or not in the right state).
+
 
 import { notifyGardenChanged } from '../events';
 
-// Ticks or unticks one planting step of a pending plant. stepIndex is the
-// position in care.plantingSteps (0 = first step). Ticks are saved, so the
-// progress is still there after the app restarts.
 export async function setPlantingStepChecked(db, gardenPlantId, stepIndex, checked) {
     const result = checked
         ? await db.runAsync(
@@ -33,10 +26,7 @@ export async function setPlantingStepChecked(db, gardenPlantId, stepIndex, check
     return changed;
 }
 
-// Pending -> planted, once every planting step is done. The plant leaves the
-// Home screen and appears in My Garden and Daily Routine.
-// Planting includes watering in and adding compost, so watering and feeding
-// are counted from today.
+
 export async function completePlanting(db, gardenPlantId) {
     let changed = false;
 
@@ -106,8 +96,6 @@ export async function markFed(db, gardenPlantId) {
     return changed;
 }
 
-// Brings an archived plant back. It returns to where it was before
-// (Home if pending, My Garden if planted), with its data unchanged.
 export async function restorePlant(db, gardenPlantId) {
     const result = await db.runAsync(
         `UPDATE garden_plants
