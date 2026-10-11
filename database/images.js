@@ -1,11 +1,3 @@
-// Plant photos.
-//
-// The database stores only the photo's URI (garden_plants.image_uri), not the
-// image itself: images would make the database large and every card query slow.
-//
-// ImagePicker gives a URI in a temporary cache folder that iOS and Android can
-// empty at any time, so the photo is first copied into the app's document
-// folder, which the system never clears, and that permanent URI is saved.
 
 import { Directory, File, Paths } from 'expo-file-system';
 
