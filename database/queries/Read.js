@@ -1,16 +1,3 @@
-// Read queries: everything the screens display.
-//
-// Every function takes the database as its first argument. In a screen, use
-// them through useLiveQuery so the screen refreshes when data changes:
-//
-//     import { useLiveQuery } from '../database/useLiveQuery';
-//     import { getGardenPlantCards } from '../database/queries/Read';
-//
-//     const { data: plants = [], loading } = useLiveQuery(getGardenPlantCards);
-//
-// Column names are aliased to camelCase so results can be used directly in JSX.
-// Only active plants (archived_at IS NULL) appear outside the Archive.
-
 import buildTipsInterpreter from '../../logic/BuildPlantFieldInterpreter';
 import { buildDailyTasks } from '../../logic/DailyTask';
 import { toGrowthShape } from '../../helper/PlantDefaults';
@@ -48,12 +35,7 @@ function careFromRow(row) {
     }));
 }
 
-// ---------- Home: plants waiting to be planted ----------
 
-// Newest first.
-// Returns: [{ gardenPlantId, commonName, scientificName, imageUri, createdAt,
-//             checkedSteps: [0, 2],         // indexes of ticked care.plantingSteps
-//             care }]                       // care.plantingSteps, care.tips, ...
 export async function getPendingPlants(db) {
     const rows = await db.getAllAsync(`
         SELECT g.garden_plant_id AS gardenPlantId,
@@ -84,10 +66,7 @@ export async function getPendingPlants(db) {
     }));
 }
 
-// ---------- My Garden: cards ----------
 
-// Requirements as display values, turned into labels by the lookup tables.
-// Used with REQUIREMENT_JOINS and requirementsFromRow().
 const REQUIREMENT_COLUMNS = `
     r.plant_id        AS requirementsPlantId,
     r.min_ph          AS minPh,
@@ -113,13 +92,7 @@ const REQUIREMENT_JOINS = `
              ORDER BY max_score LIMIT 1)
 `;
 
-// {
-//     soilNutrientLevel: 'Very low' | 'Low' | 'Medium' | 'High' | 'Very high',
-//     lightLevel:        'Shade' | 'Partial sun' | 'Full sun',
-//     ph:                { min: 6.0, max: 7.0 },
-//     humidity:          { level: 'Moderate', min: 45, max: 70 },   // %
-//     temperatureC:      { min: 15, max: 35 },
-// } | null when the plant has no requirements row
+
 function requirementsFromRow(row) {
     if (row.requirementsPlantId === null) {
         return null;
@@ -145,10 +118,7 @@ const HUMIDITY_PHRASES = {
     'Humid': 'humid air',
 };
 
-// One-sentence summary of the requirements, used as the description when the
-// plant has none saved (the APIs don't provide one), e.g.
-// "A full-sun plant that likes moderate humidity, very high-nutrient soil,
-//  pH 6-6.8 and 10-30°C."
+
 function describeRequirements(req) {
     if (!req) {
         return null;
@@ -159,11 +129,7 @@ function describeRequirements(req) {
         + `pH ${req.ph.min}-${req.ph.max} and ${req.temperatureC.min}-${req.temperatureC.max}°C.`;
 }
 
-// Planted plants, A-Z by common name, with everything the card and its
-// pop-up show, in one query. description is the saved one, or else a
-// one-sentence summary of the requirements (see describeRequirements).
-// Returns: [{ gardenPlantId, commonName, scientificName, imageUri, description,
-//             requirements }]                // same shape as getPlantDetails
+
 export async function getGardenPlantCards(db) {
     const rows = await db.getAllAsync(`
         SELECT g.garden_plant_id AS gardenPlantId,
@@ -193,18 +159,7 @@ export async function getGardenPlantCards(db) {
     });
 }
 
-// ---------- My Garden / Archive: one plant ----------
 
-// One garden plant with its requirements as display values, in one query.
-// Works for archived plants too.
-//
-// Returns null if not found, otherwise:
-// {
-//     gardenPlantId, commonName, scientificName, imageUri, description,
-//     status: 'pending' | 'planted', plantedAt, archivedAt,   // ISO UTC or null
-//     dataConfidence: 'verified' | 'estimated' | 'generic',
-//     requirements,                          // see requirementsFromRow
-// }
 export async function getPlantDetails(db, gardenPlantId) {
     const row = await db.getFirstAsync(
         `
@@ -245,12 +200,7 @@ export async function getPlantDetails(db, gardenPlantId) {
     };
 }
 
-// ---------- Daily Routine ----------
 
-// Planted plants with what logic/DailyTask.js needs, A-Z by common name.
-// Days are counted in the phone's local time; null = never.
-// Returns: [{ gardenPlantId, commonName, scientificName, imageUri,
-//             daysSinceWatered, daysSinceFed, care }]
 export async function getDailyRoutinePlants(db) {
     const rows = await db.getAllAsync(`
         SELECT g.garden_plant_id AS gardenPlantId,
@@ -283,16 +233,7 @@ export async function getDailyRoutinePlants(db) {
     }));
 }
 
-// Today's instructions for every planted plant. `weather` is the object
-// services/weatherService.js returns:
-//     { temp: { now, maxTemp, minTemp }, humidity, rain, light }
-// When the weather doesn't suit a plant (too hot, too cold, too dry, too
-// humid, too little sun, rain), logic/DailyTask.js adds a matching task.
-// Pass null if the weather hasn't loaded; watering and feeding still work.
-//
-// Returns: [{ ...getDailyRoutinePlants() fields,
-//             tasks: [{ type, text, priority? }],
-//             needsAttention: true if any task is more than info }]
+
 export async function getDailyRoutine(db, weather) {
     const plants = await getDailyRoutinePlants(db);
 
@@ -312,11 +253,6 @@ export async function getDailyRoutine(db, weather) {
     });
 }
 
-// ---------- Archive ----------
-
-// Soft-deleted plants, most recently archived first.
-// Returns: [{ gardenPlantId, commonName, scientificName, imageUri,
-//             status, archivedAt }]
 export function getArchivedPlants(db) {
     return db.getAllAsync(`
         SELECT g.garden_plant_id AS gardenPlantId,
