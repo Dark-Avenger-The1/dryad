@@ -9,6 +9,7 @@ import { SafeAreaProvider, useSafeAreaInsets, } from 'react-native-safe-area-con
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
+import {getCurrentLocation} from './services/GeoLocation.js';
 
 import { migrateDbIfNeeded } from './database/migrate';
 
@@ -18,6 +19,8 @@ import DailyRoutineScreen from './screens/DailyRoutineScreen';
 import MoreStack from './screens/MoreStack';
 import LoadingScreen from './screens/LoadingScreen';
 
+//Context
+import LocationProvider from './context/LocationContext.js';
 import { COLORS, FONTS } from './constant/constant';
 
 import {
@@ -36,6 +39,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function App() {
 
   const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -77,36 +81,38 @@ export default function App() {
 
 
   return (
-    <View
-      style={{ flex: 1 }}
-      onLayout={onLayoutRootView}
-    >
-      <SQLiteProvider
-        databaseName="dryad.db"
-        onInit={migrateDbIfNeeded}
+    <LocationProvider>
+      <View
+        style={{ flex: 1 }}
+        onLayout={onLayoutRootView}
       >
-        <SafeAreaProvider>
-          <NavigationContainer>
-            <Stack.Navigator>
-              <Stack.Screen
-                name="MainTabs"
-                component={TabsWithInsets}
-                options={{ headerShown: false }}
-              />
+        <SQLiteProvider
+          databaseName="dryad.db"
+          onInit={migrateDbIfNeeded}
+        >
+          <SafeAreaProvider>
+            <NavigationContainer>
+              <Stack.Navigator>
+                <Stack.Screen
+                  name="MainTabs"
+                  component={TabsWithInsets}
+                  options={{ headerShown: false }}
+                />
 
-              <Stack.Screen
-                name="Scanner"
-                component={ScannerScreen}
-                options={{
-                  title: 'Scan Plant',
-                }}
-              />
-            </Stack.Navigator>
-            <StatusBar style="dark" />
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </SQLiteProvider>
-    </View>
+                <Stack.Screen
+                  name="Scanner"
+                  component={ScannerScreen}
+                  options={{
+                    title: 'Scan Plant',
+                  }}
+                />
+              </Stack.Navigator>
+              <StatusBar style="dark" />
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </SQLiteProvider>
+      </View>
+    </LocationProvider>
   );
 }
 

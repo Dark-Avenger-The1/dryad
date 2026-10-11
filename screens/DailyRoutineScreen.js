@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -22,17 +22,8 @@ import {
 } from "../constant/constant";
 import { useLiveQuery } from "../database/useLiveQuery";
 import { getDailyRoutine } from "../database/queries/Read";
-
-// Temporary weather data, in the shape services/weatherService.js returns.
-// Replaced later with data from the weather API.
-// Kept outside the component so useLiveQuery gets the same object on every
-// render (a new object each render would re-run the query endlessly).
-const TEMP_WEATHER = {
-  temp: { now: 29, maxTemp: 31, minTemp: 24 },
-  humidity: 78,
-  rain: 8,   // mm today
-  light: 2,  // hours of sunshine today
-};
+import getForeCast from "../services/weatherService";
+import { LocationContext } from "../context/LocationContext";
 
 // Label and icon for the weather card. Uses the same limits as
 // logic/DailyTask.js (more than 5 mm = rain, less than 3 h of sun = cloudy).
@@ -49,6 +40,7 @@ function describeWeather(weather) {
 export default function DailyRoutineScreen() {
   // Controls how plant cards are displayed.
   const [viewMode, setViewMode] = useState("grid");
+  const { getLocation } = useContext(LocationContext);
 
   // Controls the selected plant and routine modal.
   // Only the id is stored, so the modal always shows the latest data.
@@ -58,12 +50,46 @@ export default function DailyRoutineScreen() {
   const isGridView = viewMode === "grid";
   const isListView = viewMode === "list";
 
-  const weather = TEMP_WEATHER;
-  const weatherDisplay = describeWeather(weather);
+  const [weather, setWeather] = useState(null);
+  const [weatherError, setWeatherError] = useState(null);
+  const [day, setDay] = useState(new Date().toDateString());
 
-  // Planted plants with today's tasks. Refreshes by itself when the garden changes.
+  // Fetches the forecast once the location is ready, and again each new day.
+  useEffect(() => {
+    if (!getLocation?.latitude) return;
+
+    let alive = true;
+    getForeCast(getLocation.latitude, getLocation.longitude)
+      .then((w) => {
+        if (!alive) return;
+        setWeather(w);
+        setWeatherError(null);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setWeatherError(e.message);
+        console.log("weather failed:", e.message);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [getLocation?.latitude, getLocation?.longitude, day]);
+
+  // Rolls the day over at midnight, which re-runs the effect above.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date().toDateString();
+      if (now !== day) setDay(now);
+    }, 60 * 1000);
+    return () => clearInterval(timer);
+  }, [day]);
+
+  // Every hook must run on every render — no early return above this line.
   const { data, loading, error } = useLiveQuery(getDailyRoutine, weather);
+
   const plants = data ?? [];
+  const weatherDisplay = weather ? describeWeather(weather) : null;
 
   const selectedPlant =
     plants.find((plant) => plant.gardenPlantId === selectedPlantId) ?? null;
@@ -105,7 +131,7 @@ export default function DailyRoutineScreen() {
                 />
 
                 <Text style={styles.weatherValue}>
-                  {Math.round(weather.temp.now)}°
+                  {weather ? `${Math.round(weather.temp.now)}°` : "—"}
                 </Text>
 
                 <Text style={styles.weatherLabel}>
@@ -124,7 +150,7 @@ export default function DailyRoutineScreen() {
                 />
 
                 <Text style={styles.weatherValue}>
-                  {weather.humidity}%
+                  {weather ? `${weather.humidity}%` : "—"}
                 </Text>
 
                 <Text style={styles.weatherLabel}>
@@ -137,13 +163,13 @@ export default function DailyRoutineScreen() {
               {/* Weather Condition */}
               <View style={styles.weatherItem}>
                 <Ionicons
-                  name={weatherDisplay.icon}
+                  name={weatherDisplay?.icon ?? "cloud-outline"}
                   size={22}
                   color={COLORS.primary}
                 />
 
                 <Text style={styles.weatherValue}>
-                  {weatherDisplay.label}
+                  {weatherDisplay?.label ?? (weatherError ? "Unavailable" : "Loading")}
                 </Text>
 
                 <Text style={styles.weatherLabel}>
@@ -222,7 +248,9 @@ export default function DailyRoutineScreen() {
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled
             >
-              {loading ? (
+              {!weather && !weatherError ? (
+                <Text style={styles.stateText}>Getting today's weather...</Text>
+              ) : loading ? (
                 <Text style={styles.stateText}>Loading plants...</Text>
               ) : error ? (
                 <Text style={styles.stateText}>
