@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   // Page title
   title: {
     fontFamily: FONTS.heading,
-    fontSize: SIZES.h2,
+    fontSize: SIZES.h1,
     color: COLORS.primary,
     marginBottom: SPACING.md,
   },

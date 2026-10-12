@@ -135,6 +135,7 @@ export async function getGardenPlantCards(db) {
                p.scientific_name AS scientificName,
                g.image_uri       AS imageUri,
                p.description,
+               strftime('%Y-%m-%dT%H:%M:%SZ', g.planted_at) AS plantedAt,
                ${REQUIREMENT_COLUMNS}
         FROM garden_plants g
         JOIN plants p ON p.plant_id = g.plant_id
@@ -152,6 +153,7 @@ export async function getGardenPlantCards(db) {
             scientificName: row.scientificName,
             imageUri: row.imageUri,
             description: row.description ?? describeRequirements(requirements),
+            plantedAt: row.plantedAt,
             requirements,
         };
     });
@@ -258,6 +260,7 @@ export function getArchivedPlants(db) {
                p.scientific_name AS scientificName,
                g.image_uri       AS imageUri,
                g.status,
+               strftime('%Y-%m-%dT%H:%M:%SZ', g.planted_at)  AS plantedAt,
                strftime('%Y-%m-%dT%H:%M:%SZ', g.archived_at) AS archivedAt
         FROM garden_plants g
         JOIN plants p ON p.plant_id = g.plant_id
