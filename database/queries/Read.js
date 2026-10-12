@@ -15,9 +15,7 @@ const GROWTH_COLUMNS = `
     r.days_to_harvest     AS daysToHarvest
 `;
 
-// Rebuilds the same `care` object the scanner shows (tips, plantingSteps,
-// wateringDays, light/humidity/soil/ph/temp bands) from the stored scores,
-// using the existing logic/ files. null if the plant has no requirements row.
+
 function careFromRow(row) {
     if (row.light === null) {
         return null;
