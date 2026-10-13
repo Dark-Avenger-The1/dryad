@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSQLiteContext } from 'expo-sqlite';
 import PendingPlantCard from '../components/PendingPlantCard';
 import { COLORS, FONTS, SIZES, SPACING } from '../constant/constant';
@@ -51,36 +52,43 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Today</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+    // Same top spacing as My Garden: below the notch / Dynamic Island.
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Today</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {loading || error ? null : pending.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>
-              No plants waiting. Scan a plant to get started.
-            </Text>
-          </View>
-        ) : (
-          pending.map((plant) => (
-            <PendingPlantCard
-              key={plant.id}
-              plant={plant}
-              onComplete={handleComplete}
-            />
-          ))
-        )}
-      </ScrollView>
-    </View>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {loading || error ? null : pending.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>
+                No plants waiting. Scan a plant to get started.
+              </Text>
+            </View>
+          ) : (
+            pending.map((plant) => (
+              <PendingPlantCard
+                key={plant.id}
+                plant={plant}
+                onComplete={handleComplete}
+              />
+            ))
+          )}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingTop: SPACING.xl,
+    paddingTop: SPACING.sm,
   },
   title: {
     fontFamily: FONTS.heading,

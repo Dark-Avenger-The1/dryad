@@ -27,7 +27,7 @@ import {
  *   scientificName: string,
  *   description: string | null,
  *   image: ImageSourcePropType | undefined,
- *   datePlanted: string,
+ *   datePlanted: string | null,         // already formatted, e.g. "Oct 7, 2026"
  *   requirements: {
  *     soilNutrientLevel: string,
  *     lightLevel: string,
@@ -36,6 +36,10 @@ import {
  *     temperature: string,
  *   } | null,
  * }
+ *
+ * onArchive(plant) fires from "Move to Plant Archive".
+ * onRemove(plant) fires from "Remove from Garden". The parent confirms and
+ * talks to the database; the card only closes its modal.
  */
 
 // Static placeholder data.
@@ -44,9 +48,6 @@ export const SAMPLE_PLANT = {
   id: "1",
   commonName: "Snake Plant",
   scientificName: "Dracaena trifasciata",
-
-  // Static for now.
-  // Replace later with the actual planting date from the database.
   datePlanted: "Oct 7, 2026",
 
   description:
@@ -76,31 +77,29 @@ const RequirementRow = ({ label, value }) => (
 export default function PlantCard({
   plant = SAMPLE_PLANT,
   layout = "list",
+  onArchive,
+  onRemove,
 }) {
   const [visible, setVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
   const { requirements } = plant;
   const isGridView = layout === "grid";
-
-  // Uses database value later when available.
-  const datePlanted = plant.datePlanted || "Oct 7, 2026";
+  const datePlanted = plant.datePlanted || "Unknown";
 
   const closeModal = () => {
     setMenuVisible(false);
     setVisible(false);
   };
 
-  // Placeholder only.
-  // Connect to archive database logic later.
   const handleArchive = () => {
-    setMenuVisible(false);
+    closeModal();
+    onArchive?.(plant);
   };
 
-  // Placeholder only.
-  // Connect to delete/remove database logic later.
   const handleRemove = () => {
-    setMenuVisible(false);
+    closeModal();
+    onRemove?.(plant);
   };
 
   return (
@@ -317,7 +316,6 @@ export default function PlantCard({
                 {plant.scientificName}
               </Text>
 
-              {/* Static for now, database-ready later */}
               <View style={styles.datePlantedRow}>
                 <Ionicons
                   name="calendar-outline"

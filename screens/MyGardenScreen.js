@@ -21,6 +21,8 @@ import {
 
 import { useLiveQuery } from '../database/useLiveQuery';
 import { getGardenPlantCards } from '../database/queries/Read';
+import { usePlantActions } from '../hooks/usePlantActions';
+import { formatDate } from '../helper/FormatDate';
 
 // Requirement values as the text PlantCard shows
 function formatRequirements(req) {
@@ -36,6 +38,8 @@ function formatRequirements(req) {
 }
 
 export default function MyGardenScreen() {
+  const { archive, removeFromGarden } = usePlantActions();
+
   // Controls how PlantCard components are displayed.
   const [layout, setLayout] = useState('list');
 
@@ -51,10 +55,12 @@ export default function MyGardenScreen() {
     () =>
       (data ?? []).map((plant) => ({
         id: plant.gardenPlantId,
+        gardenPlantId: plant.gardenPlantId,
         commonName: plant.commonName,
         scientificName: plant.scientificName,
         description: plant.description,
         image: plant.imageUri ? { uri: plant.imageUri } : undefined,
+        datePlanted: formatDate(plant.plantedAt),
         requirements: formatRequirements(plant.requirements),
       })),
     [data]
@@ -140,6 +146,8 @@ export default function MyGardenScreen() {
                   key={plant.id}
                   plant={plant}
                   layout={layout}
+                  onArchive={archive}
+                  onRemove={removeFromGarden}
                 />
               ))
             )}

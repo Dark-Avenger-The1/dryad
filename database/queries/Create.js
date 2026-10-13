@@ -17,9 +17,7 @@ function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
 }
 
-// Turns resolveGrowth().values into the plant_requirements row. API data can
-// be slightly off (a score outside its scale, or a min from Trefle above a max
-// from the defaults), so values are kept in range and min/max are put in order.
+
 function toRequirements(values) {
     const ph = [values.phMin, values.phMax]
         .map((v, i) => clamp(toNumber(v, i ? 'phMax' : 'phMin'), 0, 14));
@@ -40,32 +38,7 @@ function toRequirements(values) {
     };
 }
 
-// Saves a newly identified plant as 'pending', so it shows on the Home screen
-// until its planting steps are done (see completePlanting in Update.js).
-//
-//     const gardenPlantId = await addScannedPlant(db, {
-//         scientificName: 'Musa acuminata',            // PlantNet result
-//         commonName: 'Dwarf banana',                  // optional
-//         description: null,                           // optional
-//         imageUri: result.image.uri,                  // optional, the picked/captured photo
-//         trefleDetails: result.info,                  // Treffle.fetchPlantInfo() result, may be null
-//     });
-//
-// trefleDetails MUST belong to scientificName. If the user picks another
-// candidate, fetch Trefle again for that name before calling this.
-//
-// Missing API values are filled the same way the scanner does, with
-// resolveGrowth() from helper/PlantDefaults.js. The species and its
-// requirements are saved once and reused by every garden plant of that
-// species. A later scan replaces them only if its data is at least as
-// trustworthy, so a failed API call never overwrites verified data.
-//
-// The photo is copied into permanent app storage (database/images.js) and
-// that permanent URI is saved, not ImagePicker's temporary one.
-//
-// Everything is saved in one transaction: all of it or nothing. If saving
-// fails, the copied photo is removed again.
-// Returns the new gardenPlantId.
+
 export async function addScannedPlant(
     db,
     { scientificName, commonName, description = null, imageUri = null, trefleDetails = null }
