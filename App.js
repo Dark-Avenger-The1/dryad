@@ -14,6 +14,7 @@ import {getCurrentLocation} from './services/GeoLocation.js';
 import { migrateDbIfNeeded } from './database/migrate';
 
 import HomeScreen from './screens/HomeScreen';
+import HomeStack from './screens/HomeStack';
 import MyGardenScreen from './screens/MyGardenScreen';
 import DailyRoutineScreen from './screens/DailyRoutineScreen';
 import MoreStack from './screens/MoreStack';
@@ -21,6 +22,7 @@ import LoadingScreen from './screens/LoadingScreen';
 
 //Context
 import LocationProvider from './context/LocationContext.js';
+import WeatherProvider from './context/WeatherContext.js';
 import { COLORS, FONTS } from './constant/constant';
 
 import {
@@ -82,36 +84,38 @@ export default function App() {
 
   return (
     <LocationProvider>
-      <View
-        style={{ flex: 1 }}
-        onLayout={onLayoutRootView}
-      >
-        <SQLiteProvider
-          databaseName="dryad.db"
-          onInit={migrateDbIfNeeded}
+      <WeatherProvider>
+        <View
+          style={{ flex: 1 }}
+          onLayout={onLayoutRootView}
         >
-          <SafeAreaProvider>
-            <NavigationContainer>
-              <Stack.Navigator>
-                <Stack.Screen
-                  name="MainTabs"
-                  component={TabsWithInsets}
-                  options={{ headerShown: false }}
-                />
+          <SQLiteProvider
+            databaseName="dryad-data.db"
+            onInit={migrateDbIfNeeded}
+          >
+            <SafeAreaProvider>
+              <NavigationContainer>
+                <Stack.Navigator>
+                  <Stack.Screen
+                    name="MainTabs"
+                    component={TabsWithInsets}
+                    options={{ headerShown: false }}
+                  />
 
-                <Stack.Screen
-                  name="Scanner"
-                  component={ScannerScreen}
-                  options={{
-                    title: 'Scan Plant',
-                  }}
-                />
-              </Stack.Navigator>
-              <StatusBar style="dark" />
-            </NavigationContainer>
-          </SafeAreaProvider>
-        </SQLiteProvider>
-      </View>
+                  <Stack.Screen
+                    name="Scanner"
+                    component={ScannerScreen}
+                    options={{
+                      title: 'Scan Plant',
+                    }}
+                  />
+                </Stack.Navigator>
+                <StatusBar style="dark" />
+              </NavigationContainer>
+            </SafeAreaProvider>
+          </SQLiteProvider>
+        </View>
+      </WeatherProvider>
     </LocationProvider>
   );
 }
@@ -169,7 +173,7 @@ function TabsWithInsets() {
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStack}
       />
 
       <Tab.Screen

@@ -27,6 +27,7 @@
 //     1 ── many  garden_plants             the user's own plants (photo, status, care dates)
 //                     │
 //                     1 ── many  planting_step_checks   steps ticked while pending
+//                     1 ── many  daily_task_completions daily tasks marked done
 //
 //   light_levels, humidity_levels, soil_nutrient_levels turn Trefle's 0-10
 //   scores into labels. A score belongs to the level with the smallest
@@ -126,6 +127,16 @@ export const MIGRATIONS = [
                                 REFERENCES garden_plants(garden_plant_id) ON DELETE CASCADE,
             step_index      INTEGER NOT NULL CHECK (step_index >= 0),
             PRIMARY KEY (garden_plant_id, step_index)
+        ) WITHOUT ROWID;
+
+        -- Daily tasks the user marked as done, one row per plant, task and local day.
+        -- Only today's rows matter; older ones are cleared when a new task is completed.
+        CREATE TABLE daily_task_completions (
+            garden_plant_id INTEGER NOT NULL
+                                REFERENCES garden_plants(garden_plant_id) ON DELETE CASCADE,
+            task_type       TEXT NOT NULL,
+            completed_on    TEXT NOT NULL,            -- local date, YYYY-MM-DD
+            PRIMARY KEY (garden_plant_id, task_type, completed_on)
         ) WITHOUT ROWID;
 
         CREATE INDEX idx_garden_plants_plant_id ON garden_plants(plant_id);
