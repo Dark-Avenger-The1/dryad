@@ -1,32 +1,11 @@
-import { Alert } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import { archivePlant, deletePlantPermanently } from '../database/queries/Delete';
 import { restorePlant } from '../database/queries/Update';
+import { attempt, confirmAction } from '../helper/Alerts';
 
-// Resolves true only when the user taps the destructive button.
-function confirmDestructive(title, message, confirmText) {
-  return new Promise((resolve) => {
-    Alert.alert(
-      title,
-      message,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-        { text: confirmText, style: 'destructive', onPress: () => resolve(true) },
-      ],
-      { cancelable: true, onDismiss: () => resolve(false) }
-    );
-  });
-}
-
-// Runs a database action and shows an alert instead of crashing on failure.
-async function attempt(failTitle, action) {
-  try {
-    await action();
-  } catch (e) {
-    Alert.alert(failTitle, e.message);
-  }
-}
+const confirmDestructive = (title, message, confirmText) =>
+  confirmAction(title, message, confirmText, { destructive: true });
 
 /**
  * Archive / restore / delete actions for garden plants.

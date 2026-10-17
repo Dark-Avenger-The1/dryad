@@ -96,6 +96,49 @@ export async function markFed(db, gardenPlantId) {
     return changed;
 }
 
+// Care dates that a finished task moves forward, so the routine's countdowns
+// start over. Other task types only need today's completion row.
+const CARE_DATE_COLUMNS = {
+    water: 'last_watered_at',
+    feed: 'last_fed_at',
+};
+
+// The user finished one of today's tasks (see logic/TodayTasks.js).
+export async function completeDailyTask(db, gardenPlantId, taskType) {
+    let changed = false;
+
+    await db.withTransactionAsync(async () => {
+        await db.runAsync(
+            `DELETE FROM daily_task_completions
+             WHERE completed_on < date('now', 'localtime')`
+        );
+
+        const result = await db.runAsync(
+            `INSERT OR IGNORE INTO daily_task_completions (garden_plant_id, task_type, completed_on)
+             SELECT garden_plant_id, ?, date('now', 'localtime')
+             FROM garden_plants
+             WHERE garden_plant_id = ?
+               AND status = 'planted'
+               AND archived_at IS NULL`,
+            taskType, gardenPlantId
+        );
+        changed = result.changes > 0;
+
+        const column = CARE_DATE_COLUMNS[taskType];
+        if (changed && column) {
+            await db.runAsync(
+                `UPDATE garden_plants SET ${column} = datetime('now') WHERE garden_plant_id = ?`,
+                gardenPlantId
+            );
+        }
+    });
+
+    if (changed) {
+        notifyGardenChanged({ type: 'task-completed', gardenPlantId });
+    }
+    return changed;
+}
+
 export async function restorePlant(db, gardenPlantId) {
     const result = await db.runAsync(
         `UPDATE garden_plants

@@ -1,5 +1,6 @@
 import buildTipsInterpreter from '../../logic/BuildPlantFieldInterpreter';
 import { buildDailyTasks } from '../../logic/DailyTask';
+import { buildTodayTasks, isActionable } from '../../logic/TodayTasks';
 import { toGrowthShape } from '../../helper/PlantDefaults';
 
 // The stored scores, named like helper/PlantDefaults.js resolveGrowth().values
@@ -213,6 +214,10 @@ export async function getDailyRoutinePlants(db) {
                CAST(julianday('now', 'localtime', 'start of day')
                     - julianday(g.last_fed_at, 'localtime', 'start of day')
                     AS INTEGER)  AS daysSinceFed,
+               (SELECT json_group_array(t.task_type)
+                FROM daily_task_completions t
+                WHERE t.garden_plant_id = g.garden_plant_id
+                  AND t.completed_on = date('now', 'localtime')) AS completedTodayJson,
                ${GROWTH_COLUMNS}
         FROM garden_plants g
         JOIN plants p                  ON p.plant_id = g.plant_id
@@ -229,6 +234,7 @@ export async function getDailyRoutinePlants(db) {
         imageUri: row.imageUri,
         daysSinceWatered: row.daysSinceWatered,
         daysSinceFed: row.daysSinceFed,
+        completedToday: JSON.parse(row.completedTodayJson),
         care: careFromRow(row),
     }));
 }
@@ -237,20 +243,24 @@ export async function getDailyRoutinePlants(db) {
 export async function getDailyRoutine(db, weather) {
     const plants = await getDailyRoutinePlants(db);
 
-    return plants.map((plant) => {
+    return plants.map(({ completedToday, ...plant }) => {
         const tasks = plant.care
             ? buildDailyTasks(plant.care, weather, {
                   // null (never) becomes DailyTask.js's "long ago" default
                   daysSinceWatered: plant.daysSinceWatered,
                   daysSinceFed: plant.daysSinceFed,
-              })
+              }).filter((task) => !completedToday.includes(task.type))
             : [];
         return {
             ...plant,
             tasks,
-            needsAttention: tasks.some((task) => task.type !== 'info'),
+            needsAttention: tasks.some(isActionable),
         };
     });
+}
+
+export async function getTodayTasks(db, weather) {
+    return buildTodayTasks(await getDailyRoutine(db, weather));
 }
 
 export function getArchivedPlants(db) {
