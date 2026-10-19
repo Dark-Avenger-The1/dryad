@@ -7,6 +7,7 @@ import { COLORS, FONTS, SIZES, SPACING } from '../constant/constant';
 import { useLiveQuery } from '../database/useLiveQuery';
 import { getPendingPlants } from '../database/queries/Read';
 import { completePlanting, setPlantingStepChecked } from '../database/queries/Update';
+import { showSuccessToast } from '../components/SuccessToast';
 
 export default function PendingPlantsScreen() {
   const db = useSQLiteContext();
@@ -43,6 +44,7 @@ export default function PendingPlantsScreen() {
   const handleComplete = async (plant) => {
     try {
       await completePlanting(db, plant.gardenPlantId);
+      showSuccessToast('Plant Added to Daily Routine!');
     } catch (e) {
       Alert.alert('Could not finish planting', e.message);
     }

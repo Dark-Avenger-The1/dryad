@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { COLORS, FONTS } from '../constant/constant';
@@ -8,12 +8,14 @@ import ScanResultModal from '../components/ScanResultModal';
 
 import { identifyPlantScanner } from '../hooks/ModalPlantCreation.js';
 import { addScannedPlant } from '../database/queries/Create';
+import { showSuccessToast } from '../components/SuccessToast';
 
 export default function ScannerScreen() {
   const db = useSQLiteContext();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const savingRef = useRef(false);
 
   const runScan = async (choice) => {
     setLoading(true);
@@ -31,6 +33,8 @@ export default function ScannerScreen() {
 
   // Saves the plant as 'pending', so it shows on the Home screen
   const handleConfirm = async () => {
+    if (savingRef.current || !result?.candidates?.length) return;
+    savingRef.current = true;
     try {
       const top = result.candidates[0];
       await addScannedPlant(db, {
@@ -41,8 +45,11 @@ export default function ScannerScreen() {
       });
       setModalVisible(false);
       setResult(null);
+      showSuccessToast('Plant Added!');
     } catch (e) {
       Alert.alert('Could not save plant', e.message);
+    } finally {
+      savingRef.current = false;
     }
   };
 

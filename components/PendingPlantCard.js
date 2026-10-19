@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -46,8 +47,25 @@ export default function PendingPlantCard({ plant, onToggleStep, onComplete }) {
   };
 
   const handleComplete = () => {
-    setVisible(false);
-    onComplete?.(plant);
+    if (!allDone) return;
+
+    Alert.alert(
+      "Finish Planting?",
+      `Are you sure you want to add ${plant.commonName} to your Daily Routine?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes, Finish Planting",
+          onPress: () => {
+            setVisible(false);
+            onComplete?.(plant);
+          },
+        },
+      ]
+    );
   };
 
   return (

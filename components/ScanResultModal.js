@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -78,6 +79,23 @@ export default function ScanResultModal({
   const soilValue = care?.soil
     ? care.soil.level
     : "Not available";
+
+    const handleAddConfirmation = () => {
+    Alert.alert(
+      "Add to My Garden?",
+      `Are you sure you want to add ${top?.commonName ?? "this plant"} to My Garden?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes, Add Plant",
+          onPress: () => onConfirm?.(),
+        },
+      ]
+    );
+  };
 
   return (
     <Modal
@@ -195,7 +213,7 @@ export default function ScanResultModal({
 
             {/* --- actions --- */}
             <Pressable
-              onPress={onConfirm}
+              onPress={handleAddConfirmation}
               style={({ pressed }) => [
                 styles.confirmButton,
                 pressed && { opacity: 0.7 },
