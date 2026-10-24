@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   View,
   Text,
@@ -22,8 +22,7 @@ import {
 } from "../constant/constant";
 import { useLiveQuery } from "../database/useLiveQuery";
 import { getDailyRoutine } from "../database/queries/Read";
-import getForeCast from "../services/weatherService";
-import { LocationContext } from "../context/LocationContext";
+import { WeatherContext } from "../context/WeatherContext";
 
 // Label and icon for the weather card. Uses the same limits as
 // logic/DailyTask.js (more than 5 mm = rain, less than 3 h of sun = cloudy).
@@ -40,7 +39,7 @@ function describeWeather(weather) {
 export default function DailyRoutineScreen() {
   // Controls how plant cards are displayed.
   const [viewMode, setViewMode] = useState("grid");
-  const { getLocation } = useContext(LocationContext);
+  const { weather, weatherError, day } = useContext(WeatherContext);
 
   // Controls the selected plant and routine modal.
   // Only the id is stored, so the modal always shows the latest data.
@@ -50,43 +49,9 @@ export default function DailyRoutineScreen() {
   const isGridView = viewMode === "grid";
   const isListView = viewMode === "list";
 
-  const [weather, setWeather] = useState(null);
-  const [weatherError, setWeatherError] = useState(null);
-  const [day, setDay] = useState(new Date().toDateString());
-
-  // Fetches the forecast once the location is ready, and again each new day.
-  useEffect(() => {
-    if (!getLocation?.latitude) return;
-
-    let alive = true;
-    getForeCast(getLocation.latitude, getLocation.longitude)
-      .then((w) => {
-        if (!alive) return;
-        setWeather(w);
-        setWeatherError(null);
-      })
-      .catch((e) => {
-        if (!alive) return;
-        setWeatherError(e.message);
-        console.log("weather failed:", e.message);
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [getLocation?.latitude, getLocation?.longitude, day]);
-
-  // Rolls the day over at midnight, which re-runs the effect above.
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().toDateString();
-      if (now !== day) setDay(now);
-    }, 60 * 1000);
-    return () => clearInterval(timer);
-  }, [day]);
-
   // Every hook must run on every render — no early return above this line.
-  const { data, loading, error } = useLiveQuery(getDailyRoutine, weather);
+  // `day` re-runs the query at midnight even if the new forecast fails.
+  const { data, loading, error } = useLiveQuery(getDailyRoutine, weather, day);
 
   const plants = data ?? [];
   const weatherDisplay = weather ? describeWeather(weather) : null;
@@ -389,7 +354,7 @@ const styles = StyleSheet.create({
   // Page title
   title: {
     fontFamily: FONTS.heading,
-    fontSize: SIZES.h2,
+    fontSize: SIZES.h1,
     color: COLORS.primary,
     marginBottom: SPACING.md,
   },

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -18,6 +19,7 @@ import { COLORS, FONTS, RADIUS, SIZES, SPACING } from "../constant/constant";
  *   scientificName: string,
  *   image: { uri } | require(...),
  *   status: 'pending' | 'planted',
+ *   checkedSteps: number[],            // indexes of the ticked steps
  *   care: {
  *     plantingSteps: [{ title, detail }],
  *     tips: string[],
@@ -25,27 +27,45 @@ import { COLORS, FONTS, RADIUS, SIZES, SPACING } from "../constant/constant";
  *   },
  * }
  *
+ * onToggleStep(plant, index, checked) fires when a step is tapped. The parent
+ * saves it, so progress survives leaving the screen.
  * onComplete(plant) fires when every step is checked and the user
  * taps the final button. The parent flips status to 'planted'.
  */
 
-export default function PendingPlantCard({ plant, onComplete }) {
+export default function PendingPlantCard({ plant, onToggleStep, onComplete }) {
   const [visible, setVisible] = useState(false);
-  const [checked, setChecked] = useState([]);
 
   const steps = plant?.care?.plantingSteps ?? [];
+  // Ignores saved indexes past the current step list
+  const checked = (plant?.checkedSteps ?? []).filter((i) => i < steps.length);
   const allDone = steps.length > 0 && checked.length === steps.length;
   const progress = steps.length ? Math.round((checked.length / steps.length) * 100) : 0;
 
   const toggleStep = (index) => {
-    setChecked((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    );
+    onToggleStep?.(plant, index, !checked.includes(index));
   };
 
   const handleComplete = () => {
-    setVisible(false);
-    onComplete?.(plant);
+    if (!allDone) return;
+
+    Alert.alert(
+      "Finish Planting?",
+      `Are you sure you want to add ${plant.commonName} to your Daily Routine?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes, Finish Planting",
+          onPress: () => {
+            setVisible(false);
+            onComplete?.(plant);
+          },
+        },
+      ]
+    );
   };
 
   return (

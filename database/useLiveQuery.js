@@ -5,18 +5,7 @@ import { onGardenChanged } from './events';
 
 const INITIAL = { data: undefined, error: null, loading: true };
 
-// Runs a query from database/queries/Read.js and re-runs it whenever the
-// garden data changes. Use it in any screen:
-//
-//     const { data: plants, loading, error } = useLiveQuery(getGardenPlantCards);
-//     const { data: plant } = useLiveQuery(getPlantDetails, gardenPlantId);
-//
-// Extra arguments are passed to the query after `db`. They must be stable
-// between renders (numbers, strings, or values kept in state), otherwise the
-// query re-runs on every render.
-//
-// No leaks: the change listener is removed when the screen unmounts or the
-// arguments change, and results that arrive after that are ignored.
+
 export function useLiveQuery(query, ...args) {
     const db = useSQLiteContext();
     const [state, setState] = useState(INITIAL);

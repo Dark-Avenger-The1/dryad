@@ -1,86 +1,90 @@
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
-import PendingPlantCard from '../components/PendingPlantCard';
+import React, { useContext } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import HomeShortcutCard from '../components/HomeShortcutCard';
 import { COLORS, FONTS, SIZES, SPACING } from '../constant/constant';
-
+import { WeatherContext } from '../context/WeatherContext';
 import { useLiveQuery } from '../database/useLiveQuery';
-import { getPendingPlants } from '../database/queries/Read';
-import { completePlanting } from '../database/queries/Update';
+import { getPendingPlants, getTodayTasks } from '../database/queries/Read';
 
-export default function HomeScreen() {
-  const db = useSQLiteContext();
+function plural(count, word) {
+  return `${count} ${word}${count === 1 ? '' : 's'}`;
+}
 
-  // Pending plants from the database. Refreshes by itself when a plant is
-  // scanned, planted or archived.
-  const { data, loading, error } = useLiveQuery(getPendingPlants);
+function pendingSubtitle({ data, loading, error }) {
+  if (loading) return 'Loading…';
+  if (error) return 'Could not load plants';
+  if (data.length === 0) return 'Nothing waiting to be planted';
+  return `${plural(data.length, 'plant')} waiting to be planted`;
+}
 
-  // Shape PendingPlantCard expects
-  const pending = useMemo(
-    () =>
-      (data ?? []).map((plant) => ({
-        id: plant.gardenPlantId,
-        gardenPlantId: plant.gardenPlantId,
-        commonName: plant.commonName,
-        scientificName: plant.scientificName,
-        status: 'pending',
-        image: plant.imageUri ? { uri: plant.imageUri } : undefined,
-        care: plant.care,
-      })),
-    [data]
-  );
+function tasksSubtitle({ data, loading, error }, waitingForWeather) {
+  if (waitingForWeather) return "Checking today's weather…";
+  if (loading) return 'Loading…';
+  if (error) return 'Could not load tasks';
+  if (data.length === 0) return 'All caught up for today';
+  return `${plural(data.length, 'task')} to do today`;
+}
 
-  // Pending -> planted. The plant leaves this list and appears in My Garden.
-  const handleComplete = async (plant) => {
-    try {
-      await completePlanting(db, plant.gardenPlantId);
-    } catch (e) {
-      Alert.alert('Could not finish planting', e.message);
-    }
-  };
+export default function HomeScreen({ navigation }) {
+  const { weather, weatherError, day } = useContext(WeatherContext);
 
-  let subtitle;
-  if (loading) {
-    subtitle = 'Loading…';
-  } else if (error) {
-    subtitle = `Could not load plants: ${error.message}`;
-  } else if (pending.length > 0) {
-    subtitle = `${pending.length} plant${pending.length === 1 ? '' : 's'} waiting to be planted`;
-  } else {
-    subtitle = 'Nothing pending';
-  }
+  const pending = useLiveQuery(getPendingPlants);
+  const tasks = useLiveQuery(getTodayTasks, weather, day);
+
+  const waitingForWeather = !weather && !weatherError;
+
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Today</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+    // Same top spacing as My Garden: below the notch / Dynamic Island.
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Today</Text>
+        <Text style={styles.subtitle}>{currentDate}</Text>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {loading || error ? null : pending.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>
-              No plants waiting. Scan a plant to get started.
-            </Text>
-          </View>
-        ) : (
-          pending.map((plant) => (
-            <PendingPlantCard
-              key={plant.id}
-              plant={plant}
-              onComplete={handleComplete}
-            />
-          ))
-        )}
-      </ScrollView>
-    </View>
+        <View style={styles.cards}>
+          <HomeShortcutCard
+            icon="alarm-outline"
+            title="Needs Attention Today"
+            subtitle={tasksSubtitle(tasks, waitingForWeather)}
+            count={waitingForWeather ? 0 : tasks.data?.length ?? 0}
+            actionLabel="View tasks"
+            backgroundImage={require('../assets/home_sunflowers.jpg')}
+            onPress={() => navigation.navigate('TodayTasks')}
+            style={styles.card}
+          />
+
+          <HomeShortcutCard
+            icon="hourglass-outline"
+            title="Pending Plants"
+            subtitle={pendingSubtitle(pending)}
+            count={pending.data?.length ?? 0}
+            actionLabel="View plants"
+            backgroundImage={require('../assets/home_orange_tree.jpg')}
+            onPress={() => navigation.navigate('PendingPlants')}
+            style={styles.card}
+          />
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingTop: SPACING.xl,
+    paddingTop: SPACING.sm,
   },
   title: {
     fontFamily: FONTS.heading,
@@ -93,113 +97,16 @@ const styles = StyleSheet.create({
     fontSize: SIZES.body,
     color: COLORS.textMuted,
     marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.lg,
   },
-  emptyBox: {
-    alignItems: 'center',
-    paddingVertical: SPACING.xl * 2,
-    paddingHorizontal: SPACING.xl,
+  // The two cards split the space left under the title
+  cards: {
+    flex: 1,
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.lg,
   },
-  emptyText: {
-    fontFamily: FONTS.body,
-    fontSize: SIZES.body,
-    color: COLORS.textMuted,
-    textAlign: 'center',
+  card: {
+    flex: 1,
   },
 });
-
-// import React, { useState } from 'react';
-// import { View, Text, StyleSheet, Image, Alert } from 'react-native';
-// import * as ImagePicker from 'expo-image-picker';
-
-// import Card from '../components/Card';
-// import AppButton from '../components/AppButton';
-// import { COLORS, FONTS } from '../constant/constant';
-
-// //Module 
-// import { handleScan,handlePickImage } from '../hooks/ModalPlantCreation.js';
-
-// export default function HomeScreen() {
-//   const [selectedImage, setSelectedImage] = useState(null);
-
-
-//   const handleScanPlant= async ()=>{
-//     const result = await handleScan();
-//     Alert.alert(JSON.stringify(result));
-//   }
-
-//   const handleUploadPlant = async ()=>{
-//     const result = await handlePickImage();
-//     console.log(JSON.stringify(result));
-//     Alert.alert(JSON.stringify(result));
-//   }
-
-//   return (
-//     <View style={styles.container}>
-//       <Card title="Show off your plant!" subtitle="Scan or Upload the plant of your interest!">
-//         <View style={styles.buttonGroup}>
-//           <AppButton title="Scan a Plant" onPress={handleScanPlant} style={styles.fullWidthButton} />
-
-//           <View style={styles.dividerRow}>
-//             <View style={styles.line} />
-//             <Text style={styles.orText}>OR</Text>
-//             <View style={styles.line} />
-//           </View>
-
-//           <AppButton title="Upload a Plant" onPress={handleUploadPlant} style={styles.fullWidthButton} />
-//         </View>
-//         {selectedImage && (
-//           <Image source={{ uri: selectedImage }} style={styles.preview} />
-//         )}
-//       </Card>
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     backgroundColor: COLORS.background,
-//     paddingHorizontal: 20,
-//   },
-//   header: {
-//     fontSize: 20,
-//     fontFamily: FONTS.heading,
-//     color: COLORS.primary,
-//     marginBottom: 20,
-//   },
-//   buttonGroup: {
-//     width: '100%',
-//     alignItems: 'center',
-//     gap: 12,
-//     marginTop: 16,
-//   },
-//   fullWidthButton: {
-//     width: '100%',
-//   },
-//   dividerRow: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     width: '100%',
-//     marginVertical: 4,
-//   },
-//   line: {
-//     flex: 1,
-//     height: 1,
-//     backgroundColor: COLORS.softdivider,
-//   },
-//   orText: {
-//     marginHorizontal: 10,
-//     fontFamily: FONTS.body,
-//     color: COLORS.text,
-//     fontSize: 12,
-//   },
-//   preview: {
-//     width: '100%',
-//     height: 180,
-//     borderRadius: 10,
-//     marginTop: 16,
-//   },
-// });
