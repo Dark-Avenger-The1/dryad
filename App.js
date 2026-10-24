@@ -31,6 +31,7 @@ import {
 
 import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 import {PLANTNET_KEY} from '@env';
+import SuccessToastHost from './components/SuccessToast';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -94,24 +95,26 @@ export default function App() {
             onInit={migrateDbIfNeeded}
           >
             <SafeAreaProvider>
-              <NavigationContainer>
-                <Stack.Navigator>
-                  <Stack.Screen
-                    name="MainTabs"
-                    component={TabsWithInsets}
-                    options={{ headerShown: false }}
-                  />
 
-                  <Stack.Screen
-                    name="Scanner"
-                    component={ScannerScreen}
-                    options={{
-                      title: 'Scan Plant',
-                    }}
-                  />
-                </Stack.Navigator>
-                <StatusBar style="dark" />
-              </NavigationContainer>
+                <NavigationContainer>
+                  <Stack.Navigator>
+                    <Stack.Screen
+                      name="MainTabs"
+                      component={TabsWithInsets}
+                      options={{ headerShown: false }}
+                    />
+
+                    <Stack.Screen
+                      name="Scanner"
+                      component={ScannerScreen}
+                      options={{
+                        title: 'Scan Plant',
+                      }}
+                    />
+                  </Stack.Navigator>
+                  <StatusBar style="dark" />
+                </NavigationContainer>
+                <SuccessToastHost />
             </SafeAreaProvider>
           </SQLiteProvider>
         </View>
