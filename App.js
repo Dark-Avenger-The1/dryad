@@ -25,12 +25,13 @@ import LocationProvider from './context/LocationContext.js';
 import WeatherProvider from './context/WeatherContext.js';
 import { COLORS, FONTS } from './constant/constant';
 
+
 import {
   useFonts, Poppins_400Regular, Poppins_700Bold,
 } from '@expo-google-fonts/poppins';
 
 import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
-import {PLANTNET_KEY} from '@env';
+import {PLANTNET_KEY,TREFFLE_KEY} from '@env';
 import SuccessToastHost from './components/SuccessToast';
 
 const Tab = createBottomTabNavigator();
@@ -42,7 +43,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function App() {
 
   const [loading, setLoading] = useState(true);
-
+  console.log(`PlantNet Key: ${PLANTNET_KEY}`);
+  console.log(`Treffle Key: ${TREFFLE_KEY}`)
 
   useEffect(() => {
     const timer = setTimeout(() => {

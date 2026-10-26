@@ -8,9 +8,11 @@ import { resolveGrowth,toGrowthShape } from "../helper/PlantDefaults";
 const identifyPlantScanner = async (choice) => {
   const image = await cameraHelper(choice);
   if (!image) return null;
-
+  console.log("PlanNet Execution")
   const plantnet = new PlantNet();
+  console.log("Identifying...")
   const raw = await plantnet.identifyPlant(image);
+  console.log("normalizing")
   const normalized = plantnet.normalize(raw);
 
   if (!normalized.candidates.length) {
@@ -18,18 +20,13 @@ const identifyPlantScanner = async (choice) => {
   }
 
   const scientificName = normalized.candidates[0].scientificName;
+  console.log("Treffle Execution.")
   const treffle = new Treffle();
   await treffle.fetchPlantInfo(scientificName);
   const plantDetails = treffle.getPlantDetails();
   console.log('trefle result:', JSON.stringify(plantDetails));
   const resolved = resolveGrowth(plantDetails, scientificName);
-  try {
-    
-    console.log('resolved:', JSON.stringify(resolved.values));
-    console.log("Nigga: ",toGrowthShape(resolved.values));
-    } catch (e) {
-    console.log('RESOLVE FAILED:', e.message, e.stack);
-    }
+  
     
   const care = buildTipsInterpreter(toGrowthShape(resolved.values));
 
