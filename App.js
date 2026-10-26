@@ -43,9 +43,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function App() {
 
   const [loading, setLoading] = useState(true);
-  console.log(`PlantNet Key: ${PLANTNET_KEY}`);
-  console.log(`Treffle Key: ${TREFFLE_KEY}`)
-
+ 
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
