@@ -12,9 +12,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/dryadga_logo.png"
       },
       "package": "com.anonymous.dryad"
     },
@@ -34,6 +32,11 @@
         }
       ],
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1ce086fa-3c1e-4aab-b4fb-8aaf05860431"
+      }
+    }
   }
 }
